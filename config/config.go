@@ -33,32 +33,28 @@ type SubConfig struct {
 
 func init() {
 	viper.SetConfigType("yaml")
-	viper.SetConfigName("config")
-	// /etc/vts-backup/config.yml
-	viper.AddConfigPath("/etc/vts-backup")
-	// ~/.vts-backup/config.yml
-	viper.AddConfigPath("$HOME/.vts-backup")
-
-	// ./config.yml
+	viper.SetConfigName("gobackup")
+	// ./vts-backup.yml
 	viper.AddConfigPath(".")
+	// ~/.vts-backup/vts-backup.yml
+	viper.AddConfigPath("$HOME/.vts-backup") // call multiple times to add many search paths
+	// /etc/vts-backup/vts-backup.yml
+	viper.AddConfigPath("/etc/vts-backup/") // path to look for the config file in
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Error("Failed to read config file: ", err)
+		logger.Error("Load vts-backup config faild", err)
 		return
 	}
-
 	Models = []ModelConfig{}
 	for key := range viper.GetStringMap("models") {
-
 		Models = append(Models, loadModel(key))
 	}
-
 	return
 }
 
 func loadModel(key string) (model ModelConfig) {
 	model.Name = key
-	model.DumpPath = path.Join(os.TempDir(), "vts-backup", fmt.Sprintf("%d", time.Now().UnixNano()))
+	model.DumpPath = path.Join(os.TempDir(), "vts-backup", fmt.Sprintf("%d", time.Now().UnixNano()), key)
 	model.Viper = viper.Sub("models." + key)
 
 	model.CompressWith = SubConfig{
