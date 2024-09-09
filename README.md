@@ -1,1 +1,5 @@
-# vts-backup
+# Storages
+
+- Local
+- FTP/ SFTP
+- S3
