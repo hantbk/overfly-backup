@@ -1,17 +1,26 @@
 package storage
 
+import "github.com/hantbk/vts-backup/config"
+
+// Base storage
 type Base interface {
-	Perform() error
+	perform(model config.ModelConfig, archivePath string) error
 }
 
-func New(model string) (ctx Base) {
-	switch model {
+// Run storage
+func Run(model config.ModelConfig, archivePath string) error {
+	var ctx Base
+	switch model.StoreWith.Type {
 	case "local":
-		ctx = newLocal()
+		ctx = &Local{}
+	case "ftp":
+		ctx = &FTP{}
+	default:
+		ctx = &Local{}
 	}
-	return
-}
-
-func compress() {
-	// compress file
+	err := ctx.perform(model, archivePath)
+	if err != nil {
+		return err
+	}
+	return nil
 }

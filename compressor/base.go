@@ -6,25 +6,26 @@ import (
 )
 
 type Base interface {
-	perform() error
+	perform(model config.ModelConfig) (resultPath *string, err error)
 }
 
 // Run compress
-func Run() error {
+func Run(model config.ModelConfig) (resultPath *string, err error) {
 	logger.Info("----------------Compressing----------------")
 	var ctx Base
-	switch config.CompressWith {
+	switch model.CompressWith.Type {
 	case "tgz":
+
 		ctx = &Tgz{}
 	default:
 		ctx = &Tgz{}
 	}
 
-	err := ctx.perform()
+	resultPath, err = ctx.perform(model)
 	if err != nil {
-		return err
+		return
 	}
 	logger.Info("----------------Compressing done----------------")
 
-	return nil
+	return
 }

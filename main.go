@@ -1,24 +1,71 @@
 package main
 
 import (
-	"github.com/hantbk/vts-backup/compressor"
 	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
+	"gopkg.in/urfave/cli.v1"
+	"os"
+)
+
+const (
+	usage = "Backup operation"
+)
+
+var (
+	modelName = "all"
 )
 
 func main() {
-	defer cleanup()
-	logger.Info("WorkDir:", config.DumpPath)
+	app := cli.NewApp()
+	app.Version = "0.0.1"
+	app.Name = "vts-backup"
+	app.Usage = usage
 
-	err := compressor.Run()
-	if err != nil {
-		logger.Error(err)
-		return
+	app.Commands = []cli.Command{
+		cli.Command{
+			Name: "perform",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "model, m",
+					Usage:       "Model name that you want execute",
+					Destination: &modelName,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				if len(modelName) == 0 {
+					modelName = "all"
+				}
+
+				if modelName == "all" {
+					performAll()
+				} else {
+					performOne(modelName)
+				}
+
+				return nil
+			},
+		},
+	}
+
+	app.Run(os.Args)
+}
+
+func performAll() {
+	for _, modelConfig := range config.Models {
+		model := Model{
+			Config: modelConfig,
+		}
+		model.perform()
 	}
 }
 
-func cleanup() {
-	logger.Info("Cleaning up temp dir")
-	helper.Exec("rm", "-rf", config.DumpPath)
+func performOne(modelName string) {
+	for _, modelConfig := range config.Models {
+		if modelConfig.Name == modelName {
+			model := Model{
+				Config: modelConfig,
+			}
+			model.perform()
+			return
+		}
+	}
 }

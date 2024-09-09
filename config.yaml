@@ -1,5 +1,0 @@
-compress_with: tgz
-storages:
-  local:
-    type: local
-    path: /Users/hant/Downloads/backup1
