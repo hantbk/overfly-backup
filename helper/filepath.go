@@ -14,14 +14,11 @@ func IsExistsPath(path string) bool {
 	return true
 }
 
-// MkdirPath create directory path if not exists
-func MkdirP(dirPath string) {
+func MkdirP(dirPath string) error {
 	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
-		err := os.MkdirAll(dirPath, 0777)
-		if err != nil {
-			return
-		}
+		return os.MkdirAll(dirPath, 0750)
 	}
+	return nil
 }
 
 // ExplandHome ~/foo -> /home/hant/foo

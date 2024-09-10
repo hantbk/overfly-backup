@@ -7,9 +7,14 @@ import (
 )
 
 func TestTar_options(t *testing.T) {
-	ctx := &Tar{}
-	opts := ctx.options()
+	tar := &Tar{}
+	opts := tar.options()
 	if helper.IsGnuTar {
-		assert.Equal(t, "--ignore-failed-read", opts[0])
+		assert.Equal(t, opts[0], "--ignore-failed-read")
+		assert.Equal(t, opts[1], "-a")
+		assert.Equal(t, opts[2], "-cf")
+	} else {
+		assert.Equal(t, opts[0], "-a")
+		assert.Equal(t, opts[1], "-cf")
 	}
 }

@@ -6,6 +6,8 @@ import (
 	"path"
 )
 
+// Local storage
+//
 // type: local
 // path: /data/backups
 type Local struct {
@@ -13,16 +15,16 @@ type Local struct {
 	destPath string
 }
 
-func (s *Local) open() (err error) {
-	s.destPath = s.model.StoreWith.Viper.GetString("path")
-	helper.MkdirP(s.destPath)
-	return
+func (s *Local) open() error {
+	s.destPath = s.viper.GetString("path")
+	return helper.MkdirP(s.destPath)
 }
 
 func (s *Local) close() {}
 
 func (s *Local) upload(fileKey string) (err error) {
 	logger := logger.Tag("Local")
+
 	_, err = helper.Exec("cp", s.archivePath, s.destPath)
 	if err != nil {
 		return err

@@ -1,8 +1,24 @@
 FROM alpine:latest
 
-RUN apk update && apk add curl ca-certificates
+RUN apk add \
+       curl \
+       ca-certificates \
+       openssl \
+       tar \
+       gzip \
+       pigz \
+       bzip2 \
+       # there is no pbzip2 yet
+       lzip \
+       xz-dev \
+       lzop \
+       xz \
+       # pixz is in edge atm
+       zstd \
+       && \
+     rm -rf /var/cache/apk/*
 
-WORKDIR /
 ADD install /install
-RUN /install
+RUN /install && rm /install
+
 CMD ["/usr/local/bin/vtsbackup"]

@@ -7,7 +7,18 @@
 
 ### Compressor
 
-- Tgz - `.tar.gz`
+| Type                            | Ext         | Parallel Support |
+ |---------------------------------|-------------|------------------|
+| `gz`, `tgz`, `taz`, `tar.gz`    | `.tar.gz`   | pigz             |
+| `Z`, `taZ`, `tar.Z`             | `.tar.Z`    |                  |
+| `bz2`, `tbz`, `tbz2`, `tar.bz2` | `.tar.bz2`  | pbzip2           |
+| `lz`, `tar.lz`                  | `.tar.lz`   |                  |
+| `lzma`, `tlz`, `tar.lzma`       | `.tar.lzma` |                  |
+| `lzo`, `tar.lzo`                | `.tar.lzo`  |                  |
+| `xz`, `txz`, `tar.xz`           | `.tar.xz`   | pixz             |
+| `zst`, `tzst`, `tar.zst`        | `.tar.zst`  |                  |
+| `tar`                           | `.tar`      |                  |
+| default                         | `.tar`      |                  |
 
 ### Encryptor
 
@@ -16,12 +27,12 @@
 # Usage
 ```bash
 go build
-./vts-backup perform
+./vtsbackup perform
 ```
 
-## Install
-```bash
-curl -sSL https://raw.githubusercontent.com/hantbk/vts-backup/master/install.sh | bash
+## Install (macOS / Linux)
+```shell
+curl -sSL https://raw.githubusercontent.com/hantbk/vts-backup/master/install | sh
 ```
 
 ## Schedule run

@@ -13,7 +13,7 @@ type Monkey struct {
 	Base
 }
 
-func (ctx Monkey) perform() (archivePath string, err error) {
+func (c Monkey) perform() (archivePath string, err error) {
 	result := "aaa"
 	return result, nil
 }
@@ -27,14 +27,14 @@ func TestBase_archiveFilePath(t *testing.T) {
 
 func TestBaseInterface(t *testing.T) {
 	model := config.ModelConfig{
-		Name: "TestMonkey",
+		Name: "TestMoneky",
 	}
 	base := newBase(model)
 	assert.Equal(t, base.name, model.Name)
 	assert.Equal(t, base.model, model)
 
-	ctx := Monkey{Base: base}
-	result, err := ctx.perform()
+	c := Monkey{Base: base}
+	result, err := c.perform()
 	assert.Equal(t, result, "aaa")
 	assert.Nil(t, err)
 }

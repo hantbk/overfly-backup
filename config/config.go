@@ -5,7 +5,7 @@ import (
 	"github.com/hantbk/vts-backup/logger"
 	"github.com/spf13/viper"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 )
 
@@ -14,8 +14,8 @@ var (
 	Exist bool
 	// Models configs
 	Models []ModelConfig
-	// HomeDir of user
-	HomeDir = os.Getenv("HOME")
+	// vtsbackup base dir
+	VtsBackupDir string = getVtsBackupDir()
 )
 
 // ModelConfig for special case
@@ -25,10 +25,9 @@ type ModelConfig struct {
 	DumpPath     string
 	CompressWith SubConfig
 	EncryptWith  SubConfig
-	StoreWith    SubConfig
 	Archive      *viper.Viper
-	Databases    []SubConfig
-	Storages     []SubConfig
+	Splitter     *viper.Viper
+	Storages     map[string]SubConfig
 	Viper        *viper.Viper
 }
 
@@ -37,6 +36,14 @@ type SubConfig struct {
 	Name  string
 	Type  string
 	Viper *viper.Viper
+}
+
+func getVtsBackupDir() string {
+	dir := os.Getenv("VTSBACKUP_DIR")
+	if len(dir) == 0 {
+		dir = filepath.Join(os.Getenv("HOME"), ".vtsbackup")
+	}
+	return dir
 }
 
 // loadConfig from:
@@ -65,11 +72,26 @@ func Init(configFile string) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Error("Load backup config fail", err)
+		logger.Error("Load backup config fail: ", err)
 		return
 	}
 
-	viper.SetDefault("workdir", path.Join(os.TempDir(), "vtsbackup"))
+	viperConfigFile := viper.ConfigFileUsed()
+	if info, _ := os.Stat(viperConfigFile); info.Mode()&(1<<2) != 0 {
+		// max permission: 0770
+		logger.Warnf("Other users are able to access %s with mode %v", viperConfigFile, info.Mode())
+	}
+
+	viper.Set("useTempWorkDir", false)
+	if workdir := viper.GetString("workdir"); len(workdir) == 0 {
+		// use temp dir as workdir
+		dir, err := os.MkdirTemp("", "vtsbackup")
+		if err != nil {
+			logger.Fatal(err)
+		}
+		viper.Set("workdir", dir)
+		viper.Set("useTempWorkDir", true)
+	}
 
 	Exist = true
 	Models = []ModelConfig{}
@@ -77,12 +99,15 @@ func Init(configFile string) {
 		Models = append(Models, loadModel(key))
 	}
 
+	if len(Models) == 0 {
+		logger.Fatalf("No model found in %s", viperConfigFile)
+	}
 }
 
 func loadModel(key string) (model ModelConfig) {
 	model.Name = key
-	model.TempPath = path.Join(viper.GetString("workdir"), fmt.Sprintf("%d", time.Now().UnixNano()))
-	model.DumpPath = path.Join(model.TempPath, key)
+	model.TempPath = filepath.Join(viper.GetString("workdir"), fmt.Sprintf("%d", time.Now().UnixNano()))
+	model.DumpPath = filepath.Join(model.TempPath, key)
 	model.Viper = viper.Sub("models." + key)
 
 	model.CompressWith = SubConfig{
@@ -95,28 +120,44 @@ func loadModel(key string) (model ModelConfig) {
 		Viper: model.Viper.Sub("encrypt_with"),
 	}
 
-	model.StoreWith = SubConfig{
-		Type:  model.Viper.GetString("store_with.type"),
-		Viper: model.Viper.Sub("store_with"),
-	}
-
 	model.Archive = model.Viper.Sub("archive")
 
+	model.Splitter = model.Viper.Sub("split_with")
+
 	loadStoragesConfig(&model)
+
+	if len(model.Storages) == 0 {
+		logger.Fatalf("No storage found in model %s", model.Name)
+	}
 
 	return
 }
 
 func loadStoragesConfig(model *ModelConfig) {
-	subViper := model.Viper.Sub("storages")
-	for key := range model.Viper.GetStringMap("storages") {
-		dbViper := subViper.Sub(key)
-		model.Storages = append(model.Storages, SubConfig{
-			Name:  key,
-			Type:  dbViper.GetString("type"),
-			Viper: dbViper,
-		})
+	storageConfigs := map[string]SubConfig{}
+	// Backward compatible with `store_with` config
+	storeWith := model.Viper.Sub("store_with")
+
+	if storeWith != nil {
+		logger.Warn(`[Deprecated] "store_with" is deprecated now, please use "storages" which supports multiple storages.`)
+		storageConfigs["store_with"] = SubConfig{
+			Name:  "",
+			Type:  model.Viper.GetString("store_with.type"),
+			Viper: model.Viper.Sub("store_with"),
+		}
 	}
+
+	subViper := model.Viper.Sub("storages")
+
+	for key := range model.Viper.GetStringMap("storages") {
+		storageViper := subViper.Sub(key)
+		storageConfigs[key] = SubConfig{
+			Name:  key,
+			Type:  storageViper.GetString("type"),
+			Viper: storageViper,
+		}
+	}
+	model.Storages = storageConfigs
 }
 
 // GetModelByName get model by name

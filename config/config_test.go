@@ -27,9 +27,11 @@ func TestModel(t *testing.T) {
 	assert.Equal(t, model.EncryptWith.Type, "openssl")
 	assert.NotNil(t, model.EncryptWith.Viper)
 
-	// store_with
-	assert.Equal(t, model.StoreWith.Type, "local")
-	assert.Equal(t, model.StoreWith.Viper.GetString("path"), "/Users/hant/Downloads/backup1")
+	assert.Equal(t, model.Storages["local"].Type, "local")
+	assert.Equal(t, model.Storages["local"].Viper.GetString("path"), "/Users/hant/Downloads/backup1")
+
+	assert.Equal(t, model.Storages["scp"].Type, "scp")
+	assert.Equal(t, model.Storages["scp"].Viper.GetString("host"), "your-host.com")
 
 	// archive
 	includes := model.Archive.GetStringSlice("includes")

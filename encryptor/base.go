@@ -13,8 +13,8 @@ type Base struct {
 	archivePath string
 }
 
-// Context encryptor interface
-type Context interface {
+// Encryptor interface
+type Encryptor interface {
 	perform() (encryptPath string, err error)
 }
 
@@ -31,21 +31,24 @@ func newBase(archivePath string, model config.ModelConfig) (base Base) {
 func Run(archivePath string, model config.ModelConfig) (encryptPath string, err error) {
 	logger := logger.Tag("encryptor")
 	base := newBase(archivePath, model)
-	var ctx Context
+	var enc Encryptor
 	switch model.EncryptWith.Type {
 	case "openssl":
-		ctx = &OpenSSL{Base: base}
+		enc = &OpenSSL{Base: base}
 	default:
 		encryptPath = archivePath
 		return
 	}
 
 	logger.Info("=> Encrypt | " + model.EncryptWith.Type)
-	encryptPath, err = ctx.perform()
+	encryptPath, err = enc.perform()
 	if err != nil {
 		return
 	}
 	logger.Info("->", encryptPath)
+
+	// save Extension
+	model.Viper.Set("Ext", model.Viper.GetString("Ext")+".enc")
 
 	return
 }

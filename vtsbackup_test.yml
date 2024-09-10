@@ -25,7 +25,7 @@ models:
       type: scp
       keep: 10
       path: ~/backup
-      host: your-host.com
+      host: 192.168.103.129
       private_key: ~/.ssh/id_rsa
       username: hant
       password: 1
@@ -48,11 +48,11 @@ models:
     store_with:
       type: s3
       keep: 20
-      bucket: gobackup-test
-      region: ap-southeast-1
+      bucket: vts-backup-test
+      region: us-east-1
       path: backups
-      access_key_id: Ohsgwk86h2ks
-      secret_access_key: Ojsiw729wujhKdhwsIIOw9173
+      access_key_id: AKIAZI2LCZAIWEXIYIOV
+      secret_access_key: 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
   demo:
     compress_with:
       type: tgz

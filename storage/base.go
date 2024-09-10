@@ -5,30 +5,61 @@ import (
 	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/logger"
 	"github.com/spf13/viper"
+	"os"
 	"path/filepath"
 )
 
 // Base storage
+// When `archivePath` is a directory, `fileKeys` stores files in the `archivePath` with directory prefix
 type Base struct {
 	model       config.ModelConfig
 	archivePath string
+	fileKeys    []string
 	viper       *viper.Viper
 	keep        int
+	cycler      *Cycler
 }
 
-// Service storage interface
-type Service interface {
+// Storage interface
+type Storage interface {
 	open() error
 	close()
 	upload(fileKey string) error
 	delete(fileKey string) error
 }
 
-func newBase(model config.ModelConfig, archivePath string) (base Base) {
+func newBase(model config.ModelConfig, archivePath string, storageConfig config.SubConfig) (base Base, err error) {
+	// Backward compatible with `store_with` config
+	var cyclerName string
+	if storageConfig.Name == "" {
+		cyclerName = model.Name
+	} else {
+		cyclerName = fmt.Sprintf("%s_%s", model.Name, storageConfig.Name)
+	}
+
+	var keys []string
+	if fi, err := os.Stat(archivePath); err == nil && fi.IsDir() {
+		// NOTE: ignore err is not nil scenario here to pass test and should be fine
+		// 2022.12.04.07.09.47
+		entries, err := os.ReadDir(archivePath)
+		if err != nil {
+			return base, err
+		}
+		for _, e := range entries {
+			// Assume all entries are file
+			// 2022.12.04.07.09.47/2022.12.04.07.09.47.tar.xz-000
+			if !e.IsDir() {
+				keys = append(keys, filepath.Join(filepath.Base(archivePath), e.Name()))
+			}
+		}
+	}
+
 	base = Base{
 		model:       model,
 		archivePath: archivePath,
-		viper:       model.StoreWith.Viper,
+		fileKeys:    keys,
+		viper:       storageConfig.Viper,
+		cycler:      &Cycler{name: cyclerName},
 	}
 
 	if base.viper != nil {
@@ -38,14 +69,17 @@ func newBase(model config.ModelConfig, archivePath string) (base Base) {
 	return
 }
 
-// Run storage
-func Run(model config.ModelConfig, archivePath string) (err error) {
+// run storage
+func runModel(model config.ModelConfig, archivePath string, storageConfig config.SubConfig) (err error) {
 	logger := logger.Tag("Storage")
-	newFileKey := filepath.Base(archivePath)
 
-	base := newBase(model, archivePath)
-	var s Service
-	switch model.StoreWith.Type {
+	newFileKey := filepath.Base(archivePath)
+	base, err := newBase(model, archivePath, storageConfig)
+	if err != nil {
+		return err
+	}
+	var s Storage
+	switch storageConfig.Type {
 	case "local":
 		s = &Local{Base: base}
 	case "ftp":
@@ -55,11 +89,10 @@ func Run(model config.ModelConfig, archivePath string) (err error) {
 	case "s3":
 		s = &S3{Base: base, Service: "s3"}
 	default:
-		return fmt.Errorf("[%s] storage type has not implement", model.StoreWith.Type)
+		return fmt.Errorf("[%s] storage type has not implement", storageConfig.Type)
 	}
 
-	logger.Info("=> Storage | " + model.StoreWith.Type)
-
+	logger.Info("=> Storage | " + storageConfig.Type)
 	err = s.open()
 	if err != nil {
 		return err
@@ -71,8 +104,19 @@ func Run(model config.ModelConfig, archivePath string) (err error) {
 		return err
 	}
 
-	cycler := Cycler{}
-	cycler.run(model.Name, newFileKey, base.keep, s.delete)
+	base.cycler.run(newFileKey, base.fileKeys, base.keep, s.delete)
+
+	return nil
+}
+
+// Run storage
+func Run(model config.ModelConfig, archivePath string) (err error) {
+	for _, storageConfig := range model.Storages {
+		err := runModel(model, archivePath, storageConfig)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

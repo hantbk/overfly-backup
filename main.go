@@ -2,7 +2,9 @@ package main
 
 import (
 	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vts-backup/logger"
 	"github.com/hantbk/vts-backup/model"
+	"github.com/spf13/viper"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 )
@@ -73,4 +75,5 @@ func performOne(modelName string) {
 			return
 		}
 	}
+	logger.Fatalf("Model %s not found in %s", modelName, viper.ConfigFileUsed())
 }

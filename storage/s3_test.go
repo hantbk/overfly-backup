@@ -16,7 +16,7 @@ func Test_providerName(t *testing.T) {
 		"s3": {"AWS S3", "", "us-east-1"},
 	}
 
-	base := newBase(config.ModelConfig{}, "test")
+	base := newBase(config.ModelConfig{}, "test", config.SubConfig{})
 	base.viper = viper.New()
 
 	for service, info := range cases {
