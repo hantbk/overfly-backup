@@ -1,10 +1,8 @@
 package storage
 
 import (
-	"context"
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/bramvdbogaerde/go-scp/auth"
-	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/helper"
 	"github.com/hantbk/vts-backup/logger"
 	"golang.org/x/crypto/ssh"
@@ -23,68 +21,91 @@ import (
 // timeout: 300
 // private_key: ~/.ssh/id_rsa
 type SCP struct {
+	Base
 	path       string
 	host       string
 	port       string
 	privateKey string
 	username   string
 	password   string
+	client     scp.Client
 }
 
-func (ctx *SCP) perform(model config.ModelConfig, fileKey, archivePath string) error {
-	logger.Info("=> storage | SCP")
-	scpViper := model.StoreWith.Viper
+func (ctx *SCP) open() (err error) {
+	ctx.viper.SetDefault("port", "22")
+	ctx.viper.SetDefault("timeout", 300)
+	ctx.viper.SetDefault("private_key", "~/.ssh/id_rsa")
 
-	scpViper.SetDefault("port", "22")
-	scpViper.SetDefault("timeout", 300)
-	scpViper.SetDefault("private_key", "~/.ssh/id_rsa")
-
-	ctx.host = scpViper.GetString("host")
-	ctx.port = scpViper.GetString("port")
-	ctx.path = scpViper.GetString("path")
-	ctx.username = scpViper.GetString("username")
-	ctx.password = scpViper.GetString("password")
-	ctx.privateKey = helper.ExplandHome(scpViper.GetString("private_key"))
-
+	ctx.host = ctx.viper.GetString("host")
+	ctx.port = ctx.viper.GetString("port")
+	ctx.path = ctx.viper.GetString("path")
+	ctx.username = ctx.viper.GetString("username")
+	ctx.password = ctx.viper.GetString("password")
+	ctx.privateKey = helper.ExplandHome(ctx.viper.GetString("private_key"))
+	var clientConfig ssh.ClientConfig
 	logger.Info("PrivateKey", ctx.privateKey)
 
-	clientConfig, _ := auth.PrivateKey(
+	clientConfig, err = auth.PrivateKey(
 		ctx.username,
 		ctx.privateKey,
 		ssh.InsecureIgnoreHostKey(),
 	)
-	clientConfig.Timeout = scpViper.GetDuration("timeout") * time.Second
+	if err != nil {
+		logger.Warn(err)
+		logger.Info("PrivateKey fail, Try User@Host with Password")
+		clientConfig = ssh.ClientConfig{
+			User:            ctx.username,
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		}
+	}
+	clientConfig.Timeout = ctx.viper.GetDuration("timeout") * time.Second
 	if len(ctx.password) > 0 {
 		clientConfig.Auth = append(clientConfig.Auth, ssh.Password(ctx.password))
 	}
-	client := scp.NewClient(ctx.host+":"+ctx.port, &clientConfig)
-	logger.Info("-> Connecting...")
-	err := client.Connect()
+
+	ctx.client = scp.NewClient(ctx.host+":"+ctx.port, &clientConfig)
+
+	err = ctx.client.Connect()
 	if err != nil {
 		return err
 	}
-	defer client.Close()
+	defer ctx.client.Close()
+	//ctx.client.Session.Run("mkdir -p " + ctx.path)
+	return
+}
 
-	file, err := os.Open(archivePath)
+func (ctx *SCP) close() {}
+
+func (ctx *SCP) upload(fileKey string) (err error) {
+	err = ctx.client.Connect()
+	if err != nil {
+		return err
+	}
+	defer ctx.client.Close()
+
+	file, err := os.Open(ctx.archivePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	// Create a context with a timeout
-	timeout := scpViper.GetDuration("timeout") * time.Second
-	ctxTimeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	remotePath := path.Join(ctx.path, fileKey)
 	logger.Info("-> scp", remotePath)
-
-	// Call CopyFile with correct types
-	err = client.CopyFromFile(ctxTimeout, *file, remotePath, "0655")
-	if err != nil {
-		return err
-	}
+	//ctx.client.CopyFromFile(*file, remotePath, "0655")
 
 	logger.Info("Store successed")
 	return nil
+}
+
+func (ctx *SCP) delete(fileKey string) (err error) {
+	err = ctx.client.Connect()
+	if err != nil {
+		return
+	}
+	defer ctx.client.Close()
+
+	remotePath := path.Join(ctx.path, fileKey)
+	logger.Info("-> remove", remotePath)
+	//err = ctx.client.Session.Run("rm " + remotePath)
+	return
 }

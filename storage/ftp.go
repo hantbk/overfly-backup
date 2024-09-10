@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vts-backup/helper"
 	"github.com/hantbk/vts-backup/logger"
 	"github.com/secsy/goftp"
 	"os"
@@ -19,61 +19,69 @@ import (
 // username:
 // password:
 type FTP struct {
+	Base
 	path     string
 	host     string
 	port     string
 	username string
 	password string
+
+	client *goftp.Client
 }
 
-func (ctx *FTP) perform(model config.ModelConfig, fileKey, archivePath string) error {
-	logger.Info("=> storage | FTP")
+func (ctx *FTP) open() (err error) {
+	ctx.viper.SetDefault("port", "21")
+	ctx.viper.SetDefault("timeout", 300)
 
-	ftpViper := model.StoreWith.Viper
-
-	ftpViper.SetDefault("port", "21")
-	ftpViper.SetDefault("timeout", 300)
-
-	ctx.host = ftpViper.GetString("host")
-	ctx.port = ftpViper.GetString("port")
-	ctx.path = ftpViper.GetString("path")
-	ctx.username = ftpViper.GetString("username")
-	ctx.password = ftpViper.GetString("password")
+	ctx.host = helper.CleanHost(ctx.viper.GetString("host"))
+	ctx.port = ctx.viper.GetString("port")
+	ctx.path = ctx.viper.GetString("path")
+	ctx.username = ctx.viper.GetString("username")
+	ctx.password = ctx.viper.GetString("password")
 
 	ftpConfig := goftp.Config{
-		User:     ftpViper.GetString("username"),
-		Password: ftpViper.GetString("password"),
-		Timeout:  ftpViper.GetDuration("timeout") * time.Second,
+		User:     ctx.viper.GetString("username"),
+		Password: ctx.viper.GetString("password"),
+		Timeout:  ctx.viper.GetDuration("timeout") * time.Second,
 	}
-
-	ftp, err := goftp.DialConfig(ftpConfig, ftpViper.GetString("host")+":"+ftpViper.GetString("port"))
+	ctx.client, err = goftp.DialConfig(ftpConfig, ctx.host+":"+ctx.port)
 	if err != nil {
 		return err
 	}
-	defer ftp.Close()
+	return
+}
 
+func (ctx *FTP) close() {
+	ctx.client.Close()
+}
+
+func (ctx *FTP) upload(fileKey string) (err error) {
 	logger.Info("-> Uploading...")
-
-	_, err = ftp.Stat(ctx.path)
+	_, err = ctx.client.Stat(ctx.path)
 	if os.IsNotExist(err) {
-		if _, err := ftp.Mkdir(ctx.path); err != nil {
+		if _, err := ctx.client.Mkdir(ctx.path); err != nil {
 			return err
 		}
 	}
 
-	file, err := os.Open(archivePath)
+	file, err := os.Open(ctx.archivePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	remotePath := path.Join(ctx.path, fileKey)
-	logger.Info("-> upload", remotePath)
-	err = ftp.Store(remotePath, file)
+	err = ctx.client.Store(remotePath, file)
 	if err != nil {
 		return err
 	}
 
 	logger.Info("Store successed")
 	return nil
+}
+
+func (ctx *FTP) delete(fileKey string) (err error) {
+	remotePath := path.Join(ctx.path, fileKey)
+	err = ctx.client.Delete(remotePath)
+	return
 }

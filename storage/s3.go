@@ -5,8 +5,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/logger"
 	"os"
 	"path"
@@ -24,37 +24,42 @@ import (
 // max_retries: 5
 // timeout: 60
 type S3 struct {
+	Base
 	bucket string
 	path   string
+	client *s3manager.Uploader
 }
 
-func (ctx *S3) perform(model config.ModelConfig, fileKey, archivePath string) error {
-	logger.Info("=> storage | Amazon S3")
-	s3Viper := model.StoreWith.Viper
-	s3Viper.SetDefault("region", "us-east-1")
-
+func (ctx *S3) open() (err error) {
+	ctx.viper.SetDefault("region", "us-east-1")
 	cfg := aws.NewConfig()
-	endpoint := s3Viper.GetString("endpoint")
+	endpoint := ctx.viper.GetString("endpoint")
 	if len(endpoint) > 0 {
 		cfg.Endpoint = aws.String(endpoint)
 	}
 	cfg.Credentials = credentials.NewStaticCredentials(
-		s3Viper.GetString("access_key_id"),
-		s3Viper.GetString("secret_access_key"),
-		s3Viper.GetString("token"),
+		ctx.viper.GetString("access_key_id"),
+		ctx.viper.GetString("secret_access_key"),
+		ctx.viper.GetString("token"),
 	)
-	cfg.Region = aws.String(s3Viper.GetString("region"))
-	cfg.MaxRetries = aws.Int(s3Viper.GetInt("max_retries"))
+	cfg.Region = aws.String(ctx.viper.GetString("region"))
+	cfg.MaxRetries = aws.Int(ctx.viper.GetInt("max_retries"))
 
-	ctx.bucket = s3Viper.GetString("bucket")
-	ctx.path = s3Viper.GetString("path")
+	ctx.bucket = ctx.viper.GetString("bucket")
+	ctx.path = ctx.viper.GetString("path")
 
 	sess := session.Must(session.NewSession(cfg))
-	uploader := s3manager.NewUploader(sess)
+	ctx.client = s3manager.NewUploader(sess)
 
-	f, err := os.Open(archivePath)
+	return
+}
+
+func (ctx *S3) close() {}
+
+func (ctx *S3) upload(fileKey string) (err error) {
+	f, err := os.Open(ctx.archivePath)
 	if err != nil {
-		return fmt.Errorf("failed to open file %q, %v", archivePath, err)
+		return fmt.Errorf("failed to open file %q, %v", ctx.archivePath, err)
 	}
 
 	remotePath := path.Join(ctx.path, fileKey)
@@ -66,11 +71,21 @@ func (ctx *S3) perform(model config.ModelConfig, fileKey, archivePath string) er
 	}
 
 	logger.Info("-> S3 Uploading...")
-	result, err := uploader.Upload(input)
+	result, err := ctx.client.Upload(input)
 	if err != nil {
 		return fmt.Errorf("failed to upload file, %v", err)
 	}
 
 	logger.Info("=>", result.Location)
 	return nil
+}
+
+func (ctx *S3) delete(fileKey string) (err error) {
+	remotePath := path.Join(ctx.path, fileKey)
+	input := &s3.DeleteObjectInput{
+		Bucket: aws.String(ctx.bucket),
+		Key:    aws.String(remotePath),
+	}
+	_, err = ctx.client.S3.DeleteObject(input)
+	return
 }

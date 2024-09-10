@@ -1,0 +1,20 @@
+## Install
+
+ - Install Go
+
+ ```
+ $ brew install goreleaser
+ ```
+
+ ## Test
+
+ ```
+ $ make test
+ ```
+
+ ## Release new version
+
+ ```
+ $ git tag 0.7.3
+ $ make release
+ ```

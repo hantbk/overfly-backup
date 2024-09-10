@@ -5,6 +5,14 @@
 - SCP - Upload via SSH copy 
 - S3 - Amazon S3
 
+### Compressor
+
+- Tgz - `.tar.gz`
+
+### Encryptor
+
+- OpenSSL - `aes-256-cbc` encrypt
+
 # Usage
 ```bash
 go build

@@ -1,16 +1,16 @@
 package compressor
 
-import (
-	"github.com/hantbk/vts-backup/helper"
-)
+import "github.com/hantbk/vts-backup/helper"
 
-// Tgz .tar.gz compressor
-type Tgz struct {
+// Tar noop compressor
+//
+// type: tar (store only)
+type Tar struct {
 	Base
 }
 
-func (ctx *Tgz) perform() (archivePath string, err error) {
-	filePath := ctx.archiveFilePath(".tar.gz")
+func (ctx *Tar) perform() (archivePath string, err error) {
+	filePath := ctx.archiveFilePath(".tar")
 
 	opts := ctx.options()
 	opts = append(opts, filePath)
@@ -24,11 +24,11 @@ func (ctx *Tgz) perform() (archivePath string, err error) {
 	return
 }
 
-func (ctx *Tgz) options() (opts []string) {
+func (ctx *Tar) options() (opts []string) {
 	if helper.IsGnuTar {
 		opts = append(opts, "--ignore-failed-read")
 	}
-	opts = append(opts, "-zcf")
+	opts = append(opts, "-cf")
 
 	return
 }

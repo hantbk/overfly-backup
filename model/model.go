@@ -1,13 +1,13 @@
-package main
+package model
 
 import (
 	"github.com/hantbk/vts-backup/archive"
 	"github.com/hantbk/vts-backup/compressor"
 	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/encryptor"
-	"github.com/hantbk/vts-backup/helper"
 	"github.com/hantbk/vts-backup/logger"
 	"github.com/hantbk/vts-backup/storage"
+	"os"
 )
 
 // Model class
@@ -16,10 +16,10 @@ type Model struct {
 }
 
 // Perform model
-func (ctx Model) perform() {
+func (ctx Model) Perform() {
 	logger.Info("======== " + ctx.Config.Name + " ========")
 	logger.Info("WorkDir:", ctx.Config.DumpPath+"\n")
-	//defer ctx.cleanup()
+	defer ctx.cleanup()
 
 	if ctx.Config.Archive != nil {
 		logger.Info("------------- Archives -------------")
@@ -56,10 +56,10 @@ func (ctx Model) perform() {
 
 // Cleanup model temp files
 func (ctx Model) cleanup() {
-	logger.Info("Cleanup temp dir...\n")
-	_, err := helper.Exec("rm", "-rf", ctx.Config.DumpPath)
+	logger.Info("Cleanup temp dir:" + config.TempPath + "...\n")
+	err := os.RemoveAll(config.TempPath)
 	if err != nil {
-		return
+		logger.Error("Cleanup temp dir "+config.TempPath+" error:", err)
 	}
 	logger.Info("======= End " + ctx.Config.Name + " =======\n\n")
 }

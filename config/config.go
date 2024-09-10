@@ -14,6 +14,11 @@ var (
 	Exist bool
 	// Models configs
 	Models []ModelConfig
+	// IsTest env
+	IsTest bool
+	// HomeDir of user
+	HomeDir  string
+	TempPath string
 )
 
 // ModelConfig for special case
@@ -24,77 +29,64 @@ type ModelConfig struct {
 	EncryptWith  SubConfig
 	StoreWith    SubConfig
 	Archive      *viper.Viper
+	Databases    []SubConfig
 	Storages     []SubConfig
 	Viper        *viper.Viper
 }
 
-// Subconfig sub config info
+// SubConfig sub config info
 type SubConfig struct {
 	Name  string
 	Type  string
 	Viper *viper.Viper
 }
 
-func init() {
-	viper.SetConfigType("yaml")
-	viper.SetConfigName("config")
-	// ./vts-backup.yml
-	viper.AddConfigPath(".")
-	// ~/.vts-backup/vts-backup.yml
-	viper.AddConfigPath("$HOME/.vts-backup") // call multiple times to add many search paths
-	// /etc/vts-backup/vts-backup.yml
-	viper.AddConfigPath("/etc/vts-backup/") // path to look for the config file in
-	err := viper.ReadInConfig()
-	if err != nil {
-		logger.Error("Load vts-backup config faild", err)
-		return
-	}
-	Models = []ModelConfig{}
-	for key := range viper.GetStringMap("models") {
-		Models = append(Models, loadModel(key))
-	}
-	return
-}
-
+// loadConfig from:
+// - ./vtsbackup.yml
+// - ~/.vtsbackup/vtsbackup.yml
+// - /etc/vtsbackup/vtsbackup.yml
 func init() {
 	viper.SetConfigType("yaml")
 
-	isTest := os.Getenv("GO_ENV") == "test"
+	IsTest = os.Getenv("GO_ENV") == "test"
+	HomeDir = os.Getenv("HOME")
+	TempPath = path.Join(os.TempDir(), "vtsbackup", fmt.Sprintf("%d", time.Now().UnixNano()))
 
-	if isTest {
-
-		viper.SetConfigName("config_test")
+	if IsTest {
+		viper.SetConfigName("vtsbackup_test")
+		HomeDir = "../"
 	} else {
-		viper.SetConfigName("config")
+		viper.SetConfigName("vtsbackup")
 	}
 
-	// ./vts-backup.yml
+	// ./vtsbackup.yml
 	viper.AddConfigPath(".")
-	if isTest {
+	if IsTest {
 		viper.AddConfigPath("../")
 	} else {
-		// ~/.vts-backup/vts-backup.yml
-		viper.AddConfigPath("$HOME/.vts-backup") // call multiple times to add many search paths
-		// /etc/vts-backup/vts-backup.yml
-		viper.AddConfigPath("/etc/vts-backup/") // path to look for the config file in
+		// ~/.vtsbackup/vtsbackup.yml
+		viper.AddConfigPath("$HOME/.vtsbackup") // call multiple times to add many search paths
+		// /etc/vtsbackup/vtsbackup.yml
+		viper.AddConfigPath("/etc/vtsbackup/") // path to look for the config file in
 	}
-
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Error("Load vts-backup config faild", err)
+		logger.Error("Load backup config faild", err)
 		return
 	}
+
 	Exist = true
 	Models = []ModelConfig{}
 	for key := range viper.GetStringMap("models") {
 		Models = append(Models, loadModel(key))
 	}
+
 	return
 }
 
 func loadModel(key string) (model ModelConfig) {
 	model.Name = key
-	model.DumpPath = path.Join(os.TempDir(), "vts-backup", fmt.Sprintf("%d", time.Now().UnixNano()), key)
+	model.DumpPath = path.Join(TempPath, key)
 	model.Viper = viper.Sub("models." + key)
 
 	model.CompressWith = SubConfig{
@@ -114,9 +106,22 @@ func loadModel(key string) (model ModelConfig) {
 
 	model.Archive = model.Viper.Sub("archive")
 
+	loadDatabasesConfig(&model)
 	loadStoragesConfig(&model)
 
 	return
+}
+
+func loadDatabasesConfig(model *ModelConfig) {
+	subViper := model.Viper.Sub("databases")
+	for key := range model.Viper.GetStringMap("databases") {
+		dbViper := subViper.Sub(key)
+		model.Databases = append(model.Databases, SubConfig{
+			Name:  key,
+			Type:  dbViper.GetString("type"),
+			Viper: dbViper,
+		})
+	}
 }
 
 func loadStoragesConfig(model *ModelConfig) {
@@ -136,6 +141,17 @@ func GetModelByName(name string) (model *ModelConfig) {
 	for _, m := range Models {
 		if m.Name == name {
 			model = &m
+			return
+		}
+	}
+	return
+}
+
+// GetDatabaseByName get database config by name
+func (model *ModelConfig) GetDatabaseByName(name string) (subConfig *SubConfig) {
+	for _, m := range model.Databases {
+		if m.Name == name {
+			subConfig = &m
 			return
 		}
 	}

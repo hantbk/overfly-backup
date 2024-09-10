@@ -1,6 +1,0 @@
-language: go
-sudo: required
-go:
-  - 1.x # latest stable release
-before_script: go get -t ./...
-script: make test

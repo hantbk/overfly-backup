@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vts-backup/model"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 )
@@ -48,20 +49,20 @@ func main() {
 
 func performAll() {
 	for _, modelConfig := range config.Models {
-		model := Model{
+		m := model.Model{
 			Config: modelConfig,
 		}
-		model.perform()
+		m.Perform()
 	}
 }
 
 func performOne(modelName string) {
 	for _, modelConfig := range config.Models {
 		if modelConfig.Name == modelName {
-			model := Model{
+			m := model.Model{
 				Config: modelConfig,
 			}
-			model.perform()
+			m.Perform()
 			return
 		}
 	}

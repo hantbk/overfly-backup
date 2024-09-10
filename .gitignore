@@ -20,16 +20,16 @@
 # Go workspace file
 go.work
 go.work.sum
+go.sum
 
 # env file
 .env
 
 .glide/
 config.yml
-config_test.yml
+vtsbackup_test.yml
 vts-backup
 log/
 build/
 dist/
 ./dist
-vendor/

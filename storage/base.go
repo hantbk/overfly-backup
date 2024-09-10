@@ -3,34 +3,77 @@ package storage
 import (
 	"fmt"
 	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vts-backup/logger"
+	"github.com/spf13/viper"
 	"path/filepath"
 )
 
 // Base storage
-type Base interface {
-	perform(model config.ModelConfig, fileKey, archivePath string) error
+type Base struct {
+	model       config.ModelConfig
+	archivePath string
+	viper       *viper.Viper
+	keep        int
+}
+
+// Context storage interface
+type Context interface {
+	open() error
+	close()
+	upload(fileKey string) error
+	delete(fileKey string) error
+}
+
+func newBase(model config.ModelConfig, archivePath string) (base Base) {
+	base = Base{
+		model:       model,
+		archivePath: archivePath,
+		viper:       model.StoreWith.Viper,
+	}
+
+	if base.viper != nil {
+		base.keep = base.viper.GetInt("keep")
+	}
+
+	return
 }
 
 // Run storage
-func Run(model config.ModelConfig, archivePath string) error {
-	var ctx Base
+func Run(model config.ModelConfig, archivePath string) (err error) {
+	logger.Info("------------- Storage --------------")
+	newFileKey := filepath.Base(archivePath)
+
+	base := newBase(model, archivePath)
+	var ctx Context
 	switch model.StoreWith.Type {
 	case "local":
-		ctx = &Local{}
+		ctx = &Local{Base: base}
 	case "ftp":
-		ctx = &FTP{}
+		ctx = &FTP{Base: base}
 	case "scp":
-		ctx = &SCP{}
+		ctx = &SCP{Base: base}
 	case "s3":
-		ctx = &S3{}
+		ctx = &S3{Base: base}
 	default:
 		return fmt.Errorf("[%s] storage type has not implement", model.StoreWith.Type)
 	}
 
-	fileKey := filepath.Base(archivePath)
-	err := ctx.perform(model, fileKey, archivePath)
+	logger.Info("=> Storage | " + model.StoreWith.Type)
+
+	err = ctx.open()
 	if err != nil {
 		return err
 	}
+	defer ctx.close()
+
+	err = ctx.upload(newFileKey)
+	if err != nil {
+		return err
+	}
+
+	cycler := Cycler{}
+	cycler.run(model.Name, newFileKey, base.keep, ctx.delete)
+
+	logger.Info("------------- Storage --------------\n")
 	return nil
 }
