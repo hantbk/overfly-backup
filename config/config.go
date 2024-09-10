@@ -10,6 +10,8 @@ import (
 )
 
 var (
+	// Exist Is config file exist
+	Exist bool
 	// Models configs
 	Models []ModelConfig
 )
@@ -20,6 +22,7 @@ type ModelConfig struct {
 	DumpPath     string
 	CompressWith SubConfig
 	StoreWith    SubConfig
+	Archive      *viper.Viper
 	Storages     []SubConfig
 	Viper        *viper.Viper
 }
@@ -33,7 +36,7 @@ type SubConfig struct {
 
 func init() {
 	viper.SetConfigType("yaml")
-	viper.SetConfigName("gobackup")
+	viper.SetConfigName("config")
 	// ./vts-backup.yml
 	viper.AddConfigPath(".")
 	// ~/.vts-backup/vts-backup.yml
@@ -45,6 +48,42 @@ func init() {
 		logger.Error("Load vts-backup config faild", err)
 		return
 	}
+	Models = []ModelConfig{}
+	for key := range viper.GetStringMap("models") {
+		Models = append(Models, loadModel(key))
+	}
+	return
+}
+
+func init() {
+	viper.SetConfigType("yaml")
+
+	isTest := os.Getenv("GO_ENV") == "test"
+
+	if isTest {
+
+		viper.SetConfigName("config_test")
+	} else {
+		viper.SetConfigName("config")
+	}
+
+	// ./vts-backup.yml
+	viper.AddConfigPath(".")
+	if isTest {
+		viper.AddConfigPath("../")
+	} else {
+		// ~/.vts-backup/vts-backup.yml
+		viper.AddConfigPath("$HOME/.vts-backup") // call multiple times to add many search paths
+		// /etc/vts-backup/vts-backup.yml
+		viper.AddConfigPath("/etc/vts-backup/") // path to look for the config file in
+	}
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		logger.Error("Load vts-backup config faild", err)
+		return
+	}
+	Exist = true
 	Models = []ModelConfig{}
 	for key := range viper.GetStringMap("models") {
 		Models = append(Models, loadModel(key))
@@ -67,6 +106,8 @@ func loadModel(key string) (model ModelConfig) {
 		Viper: model.Viper.Sub("store_with"),
 	}
 
+	model.Archive = model.Viper.Sub("archive")
+
 	loadStoragesConfig(&model)
 
 	return
@@ -82,4 +123,15 @@ func loadStoragesConfig(model *ModelConfig) {
 			Viper: dbViper,
 		})
 	}
+}
+
+// GetModelByName get model by name
+func GetModelByName(name string) (model *ModelConfig) {
+	for _, m := range Models {
+		if m.Name == name {
+			model = &m
+			return
+		}
+	}
+	return
 }

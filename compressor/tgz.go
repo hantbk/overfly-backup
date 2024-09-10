@@ -4,24 +4,18 @@ import (
 	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/helper"
 	"github.com/hantbk/vts-backup/logger"
-	"os"
-	"path"
-	"time"
 )
 
-// Tgz .tar.gz file
+// Tgz .tar.gz compressor
 type Tgz struct {
 }
 
-func (ctx *Tgz) perform(model config.ModelConfig) (resultPath *string, err error) {
-	logger.Info("Compressing to .tar.gz")
-	archivePath := path.Join(os.TempDir(), "vts-backup", time.Now().Format(time.RFC3339)+".tar.gz")
-	os.Chdir(model.DumpPath)
-
-	_, err = helper.Exec("tar", "zcf", archivePath, "./")
+func (ctx *Tgz) perform(model config.ModelConfig) (archivePath string, err error) {
+	logger.Info("=> Compress with Tgz...")
+	filePath := archiveFilePath(".tar.gz")
+	_, err = helper.Exec("tar", "zcf", filePath, model.Name)
 	if err == nil {
-		logger.Info("->", archivePath)
-		resultPath = &archivePath
+		archivePath = filePath
 		return
 	}
 	return

@@ -1,0 +1,6 @@
+language: go
+
+go:
+  - 1.23
+before_script: go get -t ./...
+script: make test

@@ -6,13 +6,15 @@ import (
 	"github.com/hantbk/vts-backup/logger"
 )
 
+// type: local
+// path: /data/backups
 type Local struct {
 }
 
-func (ctx *Local) perform(model config.ModelConfig, archivePath string) error {
+func (ctx *Local) perform(model config.ModelConfig, fileKey, archivePath string) error {
 	logger.Info("=> storage | Local")
 	destPath := model.StoreWith.Viper.GetString("path")
-	helper.MkdirPath(destPath)
+	helper.MkdirP(destPath)
 	_, err := helper.Exec("cp", archivePath, destPath)
 	if err != nil {
 		return err

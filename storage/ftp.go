@@ -6,11 +6,18 @@ import (
 	"github.com/secsy/goftp"
 	"os"
 	"path"
-	"path/filepath"
 	"time"
 )
 
 // FTP storage
+//
+// type: ftp
+// path: /backups
+// host: ftp.your-host.com
+// port: 21
+// timeout: 30
+// username:
+// password:
 type FTP struct {
 	path     string
 	host     string
@@ -19,7 +26,7 @@ type FTP struct {
 	password string
 }
 
-func (ctx *FTP) perform(model config.ModelConfig, archivePath string) error {
+func (ctx *FTP) perform(model config.ModelConfig, fileKey, archivePath string) error {
 	logger.Info("=> storage | FTP")
 
 	ftpViper := model.StoreWith.Viper
@@ -58,9 +65,9 @@ func (ctx *FTP) perform(model config.ModelConfig, archivePath string) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
-	fileName := filepath.Base(archivePath)
-	remotePath := path.Join(ctx.path, fileName)
+	remotePath := path.Join(ctx.path, fileKey)
 	logger.Info("-> upload", remotePath)
 	err = ftp.Store(remotePath, file)
 	if err != nil {

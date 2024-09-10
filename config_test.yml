@@ -1,0 +1,63 @@
+models:
+  test1:
+    compress_with:
+      type: tgz
+    store_with:
+      type: local
+      path: /Users/jason/Downloads/backup1
+    databases:
+      dummy_test:
+        type: mysql
+        host: localhost
+        port: 3306
+        database: dummy_test
+        username: root
+        password: 123456
+      redis1:
+        type: redis
+        mode: sync
+        rdb_path: /var/db/redis/dump.rdb
+        invoke_save: true
+        password: 456123
+      postgresql:
+        type: postgresql
+        host: localhost
+    archive:
+      includes:
+        - /home/ubuntu/.ssh/
+        - /etc/nginx/nginx.conf
+        - /etc/redis/redis.conf
+        - /etc/logrotate.d/
+      excludes:
+        - /home/ubuntu/.ssh/known_hosts
+        - /etc/logrotate.d/syslog
+  normal_files:
+    store_with:
+      type: scp
+      path: ~/backup
+      host: your-host.com
+      private_key: ~/.ssh/id_rsa
+      username: ubuntu
+      password: password
+      timeout: 300
+  test_model:
+    compress_with:
+      type: tgz
+    store_with:
+      type: ftp
+      path: /backup1/foo
+      host: your-host.com
+      port: 21
+      timeout: 30
+      username: user1
+      password: pass1
+  test_s3:
+    compress_with:
+      type: tgz
+    store_with:
+      type: s3
+      bucket: vts-backup-test
+      region: ap-southeast-1
+      path: backups
+      access_key_id: Ohsgwk86h2ks
+      secret_access_key: Ojsiw729wujhKdhwsIIOw9173

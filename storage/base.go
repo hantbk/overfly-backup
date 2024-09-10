@@ -1,10 +1,14 @@
 package storage
 
-import "github.com/hantbk/vts-backup/config"
+import (
+	"fmt"
+	"github.com/hantbk/vts-backup/config"
+	"path/filepath"
+)
 
 // Base storage
 type Base interface {
-	perform(model config.ModelConfig, archivePath string) error
+	perform(model config.ModelConfig, fileKey, archivePath string) error
 }
 
 // Run storage
@@ -15,10 +19,16 @@ func Run(model config.ModelConfig, archivePath string) error {
 		ctx = &Local{}
 	case "ftp":
 		ctx = &FTP{}
+	case "scp":
+		ctx = &SCP{}
+	case "s3":
+		ctx = &S3{}
 	default:
-		ctx = &Local{}
+		return fmt.Errorf("[%s] storage type has not implement", model.StoreWith.Type)
 	}
-	err := ctx.perform(model, archivePath)
+
+	fileKey := filepath.Base(archivePath)
+	err := ctx.perform(model, fileKey, archivePath)
 	if err != nil {
 		return err
 	}

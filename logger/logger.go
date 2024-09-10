@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"log"
 	"os"
 )
@@ -12,7 +13,12 @@ var (
 )
 
 func init() {
-
+	isTest := os.Getenv("GO_ENV") == "test"
+	if isTest {
+		os.MkdirAll("../log", 0777)
+		logfile, _ := os.OpenFile("../log/test.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		myLog = log.New(logfile, "", logFlag)
+	}
 }
 
 // Print log
@@ -37,10 +43,12 @@ func Info(v ...interface{}) {
 
 // Warn log
 func Warn(v ...interface{}) {
-	myLog.Println("[warn]", fmt.Sprint(v...))
+	c := color.YellowString(fmt.Sprint(v...))
+	myLog.Println(c)
 }
 
 // Error log
 func Error(v ...interface{}) {
-	myLog.Println("[error]", fmt.Sprint(v...))
+	e := color.RedString(fmt.Sprint(v...))
+	myLog.Println(e)
 }

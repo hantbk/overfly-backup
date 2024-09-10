@@ -7,16 +7,17 @@ import (
 )
 
 const (
-	usage = "Backup operation"
+	usage = "Backup Agent"
 )
 
 var (
-	modelName = "all"
+	modelName = ""
+	version   = "0.0.1"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Version = "0.0.1"
+	app.Version = version
 	app.Name = "vts-backup"
 	app.Usage = usage
 
@@ -32,10 +33,6 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				if len(modelName) == 0 {
-					modelName = "all"
-				}
-
-				if modelName == "all" {
 					performAll()
 				} else {
 					performOne(modelName)

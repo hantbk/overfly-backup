@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/hantbk/vts-backup/archive"
 	"github.com/hantbk/vts-backup/compressor"
 	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/helper"
@@ -19,23 +20,37 @@ func (ctx Model) perform() {
 	logger.Info("WorkDir:", ctx.Config.DumpPath)
 	defer ctx.cleanup()
 
+	logger.Info("------------- Archives -------------")
+	err := archive.Run(ctx.Config)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	logger.Info("------------- Archives -------------\n")
+
+	logger.Info("------------ Compressor -------------")
 	archivePath, err := compressor.Run(ctx.Config)
 	if err != nil {
 		logger.Error(err)
 		return
 	}
+	logger.Info("------------ Compressor -------------\n")
 
-	err = storage.Run(ctx.Config, *archivePath)
+	logger.Info("------------- Storage --------------")
+	err = storage.Run(ctx.Config, archivePath)
 	if err != nil {
 		logger.Error(err)
 		return
 	}
-
+	logger.Info("------------- Storage --------------\n")
 }
 
 // Cleanup model temp files
 func (ctx Model) cleanup() {
-	logger.Info("Cleanup temp dir...")
-	helper.Exec("rm", "-rf", ctx.Config.DumpPath)
+	logger.Info("Cleanup temp dir...\n")
+	_, err := helper.Exec("rm", "-rf", ctx.Config.DumpPath)
+	if err != nil {
+		return
+	}
 	logger.Info("======= End " + ctx.Config.Name + " =======\n\n")
 }
