@@ -16,8 +16,8 @@ type Base struct {
 	keep        int
 }
 
-// Context storage interface
-type Context interface {
+// Service storage interface
+type Service interface {
 	open() error
 	close()
 	upload(fileKey string) error
@@ -40,40 +40,39 @@ func newBase(model config.ModelConfig, archivePath string) (base Base) {
 
 // Run storage
 func Run(model config.ModelConfig, archivePath string) (err error) {
-	logger.Info("------------- Storage --------------")
+	logger := logger.Tag("Storage")
 	newFileKey := filepath.Base(archivePath)
 
 	base := newBase(model, archivePath)
-	var ctx Context
+	var s Service
 	switch model.StoreWith.Type {
 	case "local":
-		ctx = &Local{Base: base}
+		s = &Local{Base: base}
 	case "ftp":
-		ctx = &FTP{Base: base}
+		s = &FTP{Base: base}
 	case "scp":
-		ctx = &SCP{Base: base}
+		s = &SCP{Base: base}
 	case "s3":
-		ctx = &S3{Base: base}
+		s = &S3{Base: base, Service: "s3"}
 	default:
 		return fmt.Errorf("[%s] storage type has not implement", model.StoreWith.Type)
 	}
 
 	logger.Info("=> Storage | " + model.StoreWith.Type)
 
-	err = ctx.open()
+	err = s.open()
 	if err != nil {
 		return err
 	}
-	defer ctx.close()
+	defer s.close()
 
-	err = ctx.upload(newFileKey)
+	err = s.upload(newFileKey)
 	if err != nil {
 		return err
 	}
 
 	cycler := Cycler{}
-	cycler.run(model.Name, newFileKey, base.keep, ctx.delete)
+	cycler.run(model.Name, newFileKey, base.keep, s.delete)
 
-	logger.Info("------------- Storage --------------\n")
 	return nil
 }

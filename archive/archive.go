@@ -11,11 +11,10 @@ import (
 
 // Run archive
 func Run(model config.ModelConfig) (err error) {
+	logger := logger.Tag("archive")
 	if model.Archive == nil {
 		return nil
 	}
-
-	logger.Info("------------- Archives -------------")
 
 	helper.MkdirP(model.DumpPath)
 
@@ -32,8 +31,6 @@ func Run(model config.ModelConfig) (err error) {
 
 	opts := options(model.DumpPath, excludes, includes)
 	helper.Exec("tar", opts...)
-
-	logger.Info("------------- Archives -------------\n")
 
 	return nil
 }

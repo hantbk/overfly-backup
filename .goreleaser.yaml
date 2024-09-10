@@ -8,7 +8,8 @@ before:
     - go generate ./...
 
 builds:
-  - env:
+  - binary: vtsbackup
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -16,7 +17,6 @@ builds:
     goarch:
       - arm64
       - amd64
-    binary: vtsbackup
     ldflags: -s -w -X main.version={{.Version}}
 
 archives:

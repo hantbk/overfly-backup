@@ -3,24 +3,54 @@ name: goreleaser
 on:
   push:
     tags:
-      - '*'
+      - "*"
 jobs:
-    goreleaser:
-        if: github.repository == 'hantbk/vtsbackup'
-        runs-on: ubuntu-latest
-        steps:
-        - name: Checkout
-          uses: actions/checkout@v2
-          with:
-              fetch-depth: 0
-        - name: Setup Go
-          uses: actions/setup-go@v4
-          with:
-            go-version: 1.23
-        - name: Install GoReleaser
-          uses: goreleaser/goreleaser-action@v4
-          with:
-            version: latest
-            args: release --rm-dist
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  goreleaser:
+    if: github.repository == 'hantbk/vtsbackup'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: latest
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  docker:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+    steps:
+      - uses: olegtarasov/get-tag@v2.1
+        id: tagName
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: |
+            nthhaf/vtsbackup:latest
+            nthhaf/vtsbackup:${{ steps.tagName.outputs.tag }}
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}

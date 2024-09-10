@@ -8,7 +8,7 @@ import (
 
 func TestBase_newBase(t *testing.T) {
 	model := config.ModelConfig{}
-	archivePath := "/tmp/vts-backup/test-storage/foo.zip"
+	archivePath := "/tmp/vtsbackup/test-storage/foo.zip"
 	base := newBase(model, archivePath)
 
 	assert.Equal(t, base.archivePath, archivePath)

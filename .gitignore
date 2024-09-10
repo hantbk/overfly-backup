@@ -32,3 +32,4 @@ build/
 dist/
 
 .idea/
+*.log

@@ -1,4 +1,12 @@
-version='v0.0.5'
+repo='hantbk/vtsbackup'
+version=`get_latest_release`
+
+get_latest_release() {
+ 	curl --silent "https://api.github.com/repos/$repo/releases/latest" | # Get latest release from GitHub api
+ 		grep '"tag_name":' |                                            # Get tag line
+ 		sed -E 's/.*"([^"]+)".*/\1/'                                    # Pluck JSON value
+}
+
 
 if [[ `uname` == 'Darwin' ]]; then
    platform='darwin'
@@ -6,7 +14,14 @@ else
    platform='linux'
 fi
 
-curl -sSLo vtsbackup.tar.gz https://github.com/hantbk/vtsbackup/releases/download/$version/vtsbackup-$platform-arm64.tar.gz
+if [[ `arch` == 'arm64' ]]; then
+ 	arch='arm64'
+else
+ 	arch='amd64'
+fi
+
+curl -SLo vtsbackup.tar.gz https://github.com/hantbk/vtsbackup/releases/download/$version/vtsbackup-$platform-$arch.tar.gz
+
 tar zxf vtsbackup.tar.gz
 
 if [[ `whoami` == 'root' ]]; then

@@ -2,45 +2,64 @@ package storage
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/hako/durafmt"
 	"github.com/hantbk/vts-backup/logger"
 	"math"
 	"net/http"
 	"os"
 	"path"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/hako/durafmt"
 )
 
-// Amazon S3 storage
 // S3 - Amazon S3 storage
 //
 // type: s3
-// bucket: vts-backup-test
+// bucket: gobackup-test
 // region: us-east-1
 // path: backups
-// access_key_id:
-// secret_access_key:
+// access_key_id: your-access-key-id
+// secret_access_key: your-secret-access-key
 // max_retries: 5
-// timeout: 60
+// timeout: 300
 type S3 struct {
 	Base
+	Service string
+
 	bucket string
 	path   string
 	client *s3manager.Uploader
 }
 
-func (ctx *S3) open() (err error) {
-	ctx.viper.SetDefault("region", "us-east-1")
-	ctx.viper.SetDefault("max_retries", 3)
-	ctx.viper.SetDefault("upload_timeout", "30m")
+func (s S3) providerName() string {
+	return "AWS S3"
+}
+
+func (s S3) defaultRegion() string {
+	return "us-east-1"
+}
+
+func (s S3) defaultEndpoint() *string {
+	return aws.String("")
+}
+
+func (s *S3) init() {
+	s.viper.SetDefault("region", s.defaultRegion())
+	s.viper.SetDefault("endpoint", s.defaultEndpoint())
+	s.viper.SetDefault("max_retries", 3)
+	s.viper.SetDefault("timeout", "300")
+}
+
+func (s *S3) open() (err error) {
+	s.init()
 
 	cfg := aws.NewConfig()
-	endpoint := ctx.viper.GetString("endpoint")
+	endpoint := s.viper.GetString("endpoint")
 
 	if len(endpoint) > 0 {
 		cfg.Endpoint = aws.String(endpoint)
@@ -48,58 +67,60 @@ func (ctx *S3) open() (err error) {
 	}
 
 	cfg.Credentials = credentials.NewStaticCredentials(
-		ctx.viper.GetString("access_key_id"),
-		ctx.viper.GetString("secret_access_key"),
-		ctx.viper.GetString("token"),
+		s.viper.GetString("access_key_id"),
+		s.viper.GetString("secret_access_key"),
+		s.viper.GetString("token"),
 	)
 
-	cfg.Region = aws.String(ctx.viper.GetString("region"))
-	cfg.MaxRetries = aws.Int(ctx.viper.GetInt("max_retries"))
+	cfg.Region = aws.String(s.viper.GetString("region"))
+	cfg.MaxRetries = aws.Int(s.viper.GetInt("max_retries"))
 
-	ctx.bucket = ctx.viper.GetString("bucket")
-	ctx.path = ctx.viper.GetString("path")
+	s.bucket = s.viper.GetString("bucket")
+	s.path = s.viper.GetString("path")
 
-	timeout := ctx.viper.GetString("upload_timeout")
-	duration, err := time.ParseDuration(timeout)
-	if err != nil {
-		return fmt.Errorf("failed to parse timeout duration %v", err)
-	}
+	timeout := s.viper.GetInt("timeout")
+	uploadTimeoutDuration := time.Duration(timeout) * time.Second
 
-	httpClient := &http.Client{Timeout: duration}
+	httpClient := &http.Client{Timeout: uploadTimeoutDuration}
 	cfg.HTTPClient = httpClient
 
 	sess := session.Must(session.NewSession(cfg))
-	ctx.client = s3manager.NewUploader(sess)
+	s.client = s3manager.NewUploader(sess)
+
 	return
 }
 
-func (ctx *S3) close() {}
+func (s *S3) close() {
+}
 
-func (ctx *S3) upload(fileKey string) (err error) {
-	f, err := os.Open(ctx.archivePath)
+func (s *S3) upload(fileKey string) (err error) {
+	logger := logger.Tag(s.providerName())
+
+	f, err := os.Open(s.archivePath)
 	if err != nil {
-		return fmt.Errorf("failed to open file %q, %v", ctx.archivePath, err)
+		return fmt.Errorf("failed to open file %q, %v", s.archivePath, err)
 	}
 
 	defer f.Close()
 
 	info, err := f.Stat()
 	if err != nil {
-		return fmt.Errorf("failed to get size of file %q, %v", ctx.archivePath, err)
+		return fmt.Errorf("failed to get size of file %q, %v", s.archivePath, err)
 	}
 
-	remotePath := path.Join(ctx.path, fileKey)
+	remotePath := path.Join(s.path, fileKey)
+
 	input := &s3manager.UploadInput{
-		Bucket: aws.String(ctx.bucket),
+		Bucket: aws.String(s.bucket),
 		Key:    aws.String(remotePath),
 		Body:   f,
 	}
 
-	logger.Info(fmt.Sprintf("-> S3 Uploading (%d MiB)...", info.Size()/(1024*1024)))
+	logger.Info(fmt.Sprintf("-> Uploading (%d MiB)...", info.Size()/(1024*1024)))
 
 	start := time.Now()
 
-	result, err := ctx.client.Upload(input, func(uploader *s3manager.Uploader) {
+	result, err := s.client.Upload(input, func(uploader *s3manager.Uploader) {
 		// set the part size as low as possible to avoid timeouts and aborts
 		// also set concurrency to 1 for the same reason
 		var partSize int64 = 5242880 // 5MiB
@@ -119,22 +140,27 @@ func (ctx *S3) upload(fileKey string) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to upload file, %v", err)
 	}
+
 	t := time.Now()
 	elapsed := t.Sub(start)
 
 	logger.Info("=>", result.Location)
+	if s.Service == "s3" {
+		logger.Info("=>", fmt.Sprintf("s3://%s/%s", s.bucket, remotePath))
+	}
 	rate := math.Ceil(float64(info.Size()) / (elapsed.Seconds() * 1024 * 1024))
 
 	logger.Info(fmt.Sprintf("Duration %v, rate %.1f MiB/s", durafmt.Parse(elapsed).LimitFirstN(2).String(), rate))
+
 	return nil
 }
 
-func (ctx *S3) delete(fileKey string) (err error) {
-	remotePath := path.Join(ctx.path, fileKey)
+func (s *S3) delete(fileKey string) (err error) {
+	remotePath := path.Join(s.path, fileKey)
 	input := &s3.DeleteObjectInput{
-		Bucket: aws.String(ctx.bucket),
+		Bucket: aws.String(s.bucket),
 		Key:    aws.String(remotePath),
 	}
-	_, err = ctx.client.S3.DeleteObject(input)
+	_, err = s.client.S3.DeleteObject(input)
 	return
 }

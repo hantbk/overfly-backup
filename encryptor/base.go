@@ -29,6 +29,7 @@ func newBase(archivePath string, model config.ModelConfig) (base Base) {
 
 // Run compressor
 func Run(archivePath string, model config.ModelConfig) (encryptPath string, err error) {
+	logger := logger.Tag("encryptor")
 	base := newBase(archivePath, model)
 	var ctx Context
 	switch model.EncryptWith.Type {
@@ -39,15 +40,12 @@ func Run(archivePath string, model config.ModelConfig) (encryptPath string, err 
 		return
 	}
 
-	logger.Info("------------ Encryptor -------------")
-
 	logger.Info("=> Encrypt | " + model.EncryptWith.Type)
 	encryptPath, err = ctx.perform()
 	if err != nil {
 		return
 	}
 	logger.Info("->", encryptPath)
-	logger.Info("------------ Encryptor -------------\n")
 
 	return
 }

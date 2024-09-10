@@ -42,6 +42,7 @@ func (c *Cycler) shiftByKeep(keep int) (first *Package) {
 }
 
 func (c *Cycler) run(model string, fileKey string, keep int, deletePackage func(fileKey string) error) {
+	logger := logger.Tag("Cycler")
 	cyclerFileName := path.Join(cyclerPath, model+".json")
 
 	c.load(cyclerFileName)
@@ -56,6 +57,7 @@ func (c *Cycler) run(model string, fileKey string, keep int, deletePackage func(
 			break
 		}
 		err := deletePackage(pkg.FileKey)
+		logger.Info("Removed", pkg.FileKey)
 		if err != nil {
 			logger.Warn("remove failed: ", err)
 		}
@@ -63,11 +65,12 @@ func (c *Cycler) run(model string, fileKey string, keep int, deletePackage func(
 }
 
 func (c *Cycler) load(cyclerFileName string) {
+	logger := logger.Tag("Cycler")
 	helper.MkdirP(cyclerPath)
 
 	// write example JSON if not exist
 	if !helper.IsExistsPath(cyclerFileName) {
-		ioutil.WriteFile(cyclerFileName, []byte("[{}]"), os.ModePerm)
+		ioutil.WriteFile(cyclerFileName, []byte("[]"), os.ModePerm)
 	}
 	f, err := ioutil.ReadFile(cyclerFileName)
 	if err != nil {
@@ -81,6 +84,7 @@ func (c *Cycler) load(cyclerFileName string) {
 	c.isLoaded = true
 }
 func (c *Cycler) save(cyclerFileName string) {
+	logger := logger.Tag("Cycler")
 	if !c.isLoaded {
 		logger.Warn("Skip save cycler.json because it not loaded")
 		return
