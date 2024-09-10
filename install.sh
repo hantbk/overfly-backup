@@ -4,7 +4,7 @@ if [[ `uname` == 'Darwin' ]]; then
 else
    platform='linux'
 fi
-curl -Lo vtsbackup.tar.gz https://github.com/hantbk/vts-backup/releases/download/$version/vts-backup-$platform-arm64.tar.gz
+curl -Lo vtsbackup.tar.gz https://github.com/hantbk/vtsbackup/releases/download/$version/vtsbackup-$platform-arm64.tar.gz
 tar zxf vtsbackup.tar.gz
 
 if [[ `whoami` == 'root' ]]; then

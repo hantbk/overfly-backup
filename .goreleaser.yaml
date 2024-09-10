@@ -15,7 +15,8 @@ builds:
       - darwin
     goarch:
       - arm64
-    binary: vts-backup
+      - amd64
+    binary: vtsbackup
     ldflags: -s -w -X main.version={{.Version}}
 
 archives:

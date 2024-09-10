@@ -14,10 +14,8 @@ var (
 	Exist bool
 	// Models configs
 	Models []ModelConfig
-	// IsTest env
-	IsTest bool
 	// HomeDir of user
-	HomeDir string
+	HomeDir = os.Getenv("HOME")
 )
 
 // ModelConfig for special case
@@ -48,34 +46,26 @@ type SubConfig struct {
 func Init(configFile string) {
 	viper.SetConfigType("yaml")
 
-	IsTest = os.Getenv("GO_ENV") == "test"
-	HomeDir = os.Getenv("HOME")
-
 	// Set config file directly
 	if len(configFile) > 0 {
 		viper.SetConfigFile(configFile)
 	} else {
-		if IsTest {
-			viper.SetConfigName("vtsbackup_test")
-			HomeDir = "../"
-		} else {
-			viper.SetConfigName("vtsbackup")
-		}
+		viper.SetConfigName("vtsbackup") // name of config file (without extension)
 
 		// ./vtsbackup.yml
 		viper.AddConfigPath(".")
-		if IsTest {
-			// ~/.vtsbackup/vtsbackup.yml
-			viper.AddConfigPath("$HOME/.vtsbackup")
 
-			// /etc/vtsbackup/vtsbackup.yml
-			viper.AddConfigPath("/etc/vtsbackup")
-		}
+		// ~/.vtsbackup/vtsbackup.yml
+		viper.AddConfigPath("$HOME/.vtsbackup")
+
+		// /etc/vtsbackup/vtsbackup.yml
+		viper.AddConfigPath("/etc/vtsbackup")
+
 	}
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Error("Load backup config faild", err)
+		logger.Error("Load backup config fail", err)
 		return
 	}
 
@@ -110,22 +100,9 @@ func loadModel(key string) (model ModelConfig) {
 
 	model.Archive = model.Viper.Sub("archive")
 
-	loadDatabasesConfig(&model)
 	loadStoragesConfig(&model)
 
 	return
-}
-
-func loadDatabasesConfig(model *ModelConfig) {
-	subViper := model.Viper.Sub("databases")
-	for key := range model.Viper.GetStringMap("databases") {
-		dbViper := subViper.Sub(key)
-		model.Databases = append(model.Databases, SubConfig{
-			Name:  key,
-			Type:  dbViper.GetString("type"),
-			Viper: dbViper,
-		})
-	}
 }
 
 func loadStoragesConfig(model *ModelConfig) {
@@ -145,17 +122,6 @@ func GetModelByName(name string) (model *ModelConfig) {
 	for _, m := range Models {
 		if m.Name == name {
 			model = &m
-			return
-		}
-	}
-	return
-}
-
-// GetDatabaseByName get database config by name
-func (model *ModelConfig) GetDatabaseByName(name string) (subConfig *SubConfig) {
-	for _, m := range model.Databases {
-		if m.Name == name {
-			subConfig = &m
 			return
 		}
 	}

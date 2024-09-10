@@ -12,8 +12,9 @@ const (
 )
 
 var (
-	modelName = ""
-	version   = "0.0.1"
+	modelName  = ""
+	configFile = ""
+	version    = "master"
 )
 
 func main() {
@@ -31,8 +32,14 @@ func main() {
 					Usage:       "Model name that you want execute",
 					Destination: &modelName,
 				},
+				cli.StringFlag{
+					Name:        "config, c",
+					Usage:       "Special a config file",
+					Destination: &configFile,
+				},
 			},
 			Action: func(c *cli.Context) error {
+				config.Init(configFile)
 				if len(modelName) == 0 {
 					performAll()
 				} else {

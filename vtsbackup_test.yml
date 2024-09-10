@@ -1,5 +1,5 @@
 models:
-  test1:
+  base_test:
     compress_with:
       type: tgz
     encrypt_with:
@@ -9,8 +9,8 @@ models:
       openssl: true
     store_with:
       type: local
-      keep: 5
-      path: /Users/jason/Downloads/backup1
+      keep: 10
+      path: /Users/hant/Downloads/backup1
     archive:
       includes:
         - /home/ubuntu/.ssh/
@@ -48,8 +48,29 @@ models:
     store_with:
       type: s3
       keep: 20
-      bucket: vts-backup-test
+      bucket: gobackup-test
       region: ap-southeast-1
       path: backups
-      access_key_id: 1
-      secret_access_key: 2
+      access_key_id: Ohsgwk86h2ks
+      secret_access_key: Ojsiw729wujhKdhwsIIOw9173
+  demo:
+    compress_with:
+      type: tgz
+    encrypt_with:
+      type: openssl
+      password: 123456
+      salt: false
+      openssl: true
+    store_with:
+      type: local
+      keep: 10
+      path: /Users/hant/Downloads/backup1
+    archive:
+      includes:
+        - /home/ubuntu/.ssh/
+        - /etc/nginx/nginx.conf
+        - /etc/redis/redis.conf
+        - /etc/logrotate.d/
+      excludes:
+        - /home/ubuntu/.ssh/known_hosts
+        - /etc/logrotate.d/syslog
