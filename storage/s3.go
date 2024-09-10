@@ -19,8 +19,8 @@ import (
 // bucket: vts-backup-test
 // region: us-east-1
 // path: backups
-// access_key_id: AKIAZI2LCZAIRUKEEPFL
-// secret_access_key: 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
+// access_key_id:
+// secret_access_key:
 // max_retries: 5
 // timeout: 60
 type S3 struct {

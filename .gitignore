@@ -26,6 +26,7 @@ go.work.sum
 
 .glide/
 config.yml
+config_test.yml
 vts-backup
 log/
 build/
