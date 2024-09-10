@@ -1,6 +1,9 @@
 package helper
 
-import "os"
+import (
+	"os"
+	"path"
+)
 
 // IsExistsPath check if path exists
 func IsExistsPath(path string) bool {
@@ -19,4 +22,17 @@ func MkdirP(dirPath string) {
 			return
 		}
 	}
+}
+
+// ExplandHome ~/foo -> /home/hant/foo
+func ExplandHome(filePath string) string {
+	if len(filePath) < 2 {
+		return filePath
+	}
+
+	if filePath[:2] != "~/" {
+		return filePath
+	}
+
+	return path.Join(os.Getenv("HOME"), filePath[2:])
 }

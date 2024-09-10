@@ -12,7 +12,7 @@ type Tgz struct {
 
 func (ctx *Tgz) perform(model config.ModelConfig) (archivePath string, err error) {
 	logger.Info("=> Compress with Tgz...")
-	filePath := archiveFilePath(".tar.gz")
+	filePath := archiveFilePath(model, ".tar.gz")
 	_, err = helper.Exec("tar", "zcf", filePath, model.Name)
 	if err == nil {
 		archivePath = filePath

@@ -13,7 +13,12 @@ import (
 func Run(model config.ModelConfig) (err error) {
 	logger.Info("----------- Archive Files ----------")
 
+	if model.Archive == nil {
+		return nil
+	}
+
 	tarPath := path.Join(model.DumpPath, "archive.tar")
+	helper.MkdirP(model.DumpPath)
 
 	includes := model.Archive.GetStringSlice("includes")
 	includes = cleanPaths(includes)

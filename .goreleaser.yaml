@@ -16,9 +16,11 @@ builds:
     goarch:
       - arm64
     binary: vts-backup
+    ldflags: -s -w -X main.version={{.Version}}
 
 archives:
   - format: tar.gz
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
 
 changelog:
   sort: asc

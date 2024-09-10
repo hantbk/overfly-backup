@@ -37,8 +37,8 @@ models:
       path: ~/backup
       host: your-host.com
       private_key: ~/.ssh/id_rsa
-      username: ubuntu
-      password: password
+      username: hant
+      password: 1
       timeout: 300
   test_model:
     compress_with:

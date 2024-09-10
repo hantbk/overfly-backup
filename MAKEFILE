@@ -4,7 +4,5 @@ run:
 	go run main.go model.go -- perform -m demo
 
 release:
-	mkdir -p ./build && rm -f ./build/*
-	@go build -ldflags "-s -w" -o build/vts-backup ./*.go && cd build/ && zip vts-backup-darwin-arm64.zip vts-backup && rm vts-backup && cd ..
-	shasum -a 256 build/vts-backup-darwin-arm64.zip
-	GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -o build/vts-backup ./*.go && cd build/ && tar zcf vts-backup-linux-arm64.tar.gz vts-backup && rm vts-backup && cd ..
+	@rm -Rf dist/
+	@goreleaser --skip-validate
