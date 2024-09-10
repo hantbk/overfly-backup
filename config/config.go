@@ -17,13 +17,13 @@ var (
 	// IsTest env
 	IsTest bool
 	// HomeDir of user
-	HomeDir  string
-	TempPath string
+	HomeDir string
 )
 
 // ModelConfig for special case
 type ModelConfig struct {
 	Name         string
+	TempPath     string
 	DumpPath     string
 	CompressWith SubConfig
 	EncryptWith  SubConfig
@@ -45,30 +45,34 @@ type SubConfig struct {
 // - ./vtsbackup.yml
 // - ~/.vtsbackup/vtsbackup.yml
 // - /etc/vtsbackup/vtsbackup.yml
-func init() {
+func Init(configFile string) {
 	viper.SetConfigType("yaml")
 
 	IsTest = os.Getenv("GO_ENV") == "test"
 	HomeDir = os.Getenv("HOME")
-	TempPath = path.Join(os.TempDir(), "vtsbackup", fmt.Sprintf("%d", time.Now().UnixNano()))
 
-	if IsTest {
-		viper.SetConfigName("vtsbackup_test")
-		HomeDir = "../"
+	// Set config file directly
+	if len(configFile) > 0 {
+		viper.SetConfigFile(configFile)
 	} else {
-		viper.SetConfigName("vtsbackup")
+		if IsTest {
+			viper.SetConfigName("vtsbackup_test")
+			HomeDir = "../"
+		} else {
+			viper.SetConfigName("vtsbackup")
+		}
+
+		// ./vtsbackup.yml
+		viper.AddConfigPath(".")
+		if IsTest {
+			// ~/.vtsbackup/vtsbackup.yml
+			viper.AddConfigPath("$HOME/.vtsbackup")
+
+			// /etc/vtsbackup/vtsbackup.yml
+			viper.AddConfigPath("/etc/vtsbackup")
+		}
 	}
 
-	// ./vtsbackup.yml
-	viper.AddConfigPath(".")
-	if IsTest {
-		viper.AddConfigPath("../")
-	} else {
-		// ~/.vtsbackup/vtsbackup.yml
-		viper.AddConfigPath("$HOME/.vtsbackup") // call multiple times to add many search paths
-		// /etc/vtsbackup/vtsbackup.yml
-		viper.AddConfigPath("/etc/vtsbackup/") // path to look for the config file in
-	}
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Error("Load backup config faild", err)
@@ -81,12 +85,12 @@ func init() {
 		Models = append(Models, loadModel(key))
 	}
 
-	return
 }
 
 func loadModel(key string) (model ModelConfig) {
 	model.Name = key
-	model.DumpPath = path.Join(TempPath, key)
+	model.TempPath = path.Join(os.TempDir(), "vtsbackup", fmt.Sprintf("%d", time.Now().UnixNano()))
+	model.DumpPath = path.Join(model.TempPath, key)
 	model.Viper = viper.Sub("models." + key)
 
 	model.CompressWith = SubConfig{

@@ -1,9 +1,17 @@
 ## Install
 
- - Install Go
+ - Install Go 1.23
 
  ```
  $ brew install goreleaser
+ ```
+
+ ## Get Source Code
+
+ ```
+ $ git clone https://github.com/hantbk/vts-backup.git
+ $ cd vts-backup
+ $ go get
  ```
 
  ## Test

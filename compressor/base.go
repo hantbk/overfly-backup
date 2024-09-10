@@ -22,7 +22,7 @@ type Context interface {
 }
 
 func (ctx *Base) archiveFilePath(ext string) string {
-	return path.Join(os.TempDir(), "vts-backup", time.Now().Format("2006.01.02.15.04.05")+ext)
+	return path.Join(ctx.model.TempPath, time.Now().Format("2006.01.02.15.04.05")+ext)
 }
 
 func newBase(model config.ModelConfig) (base Base) {

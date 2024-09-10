@@ -3,7 +3,6 @@ package compressor
 import (
 	"github.com/hantbk/vts-backup/config"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"path"
 	"strings"
 	"testing"
@@ -21,7 +20,7 @@ func (ctx Monkey) perform() (archivePath string, err error) {
 
 func TestBase_archiveFilePath(t *testing.T) {
 	base := Base{}
-	prefixPath := path.Join(os.TempDir(), "vts-backup", time.Now().Format("2006.01.02.15.04"))
+	prefixPath := path.Join(base.model.TempPath, time.Now().Format("2006.01.02.15.04"))
 	assert.True(t, strings.HasPrefix(base.archiveFilePath(".tar"), prefixPath))
 	assert.True(t, strings.HasSuffix(base.archiveFilePath(".tar"), ".tar"))
 }
