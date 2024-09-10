@@ -20,17 +20,15 @@
 # Go workspace file
 go.work
 go.work.sum
-go.sum
-go.mod
 
 # env file
 .env
 
 .glide/
-config.yml
-vtsbackup_test.yml
-vts-backup
+vtsbackup.yml
+vtsbackup
 log/
 build/
 dist/
-./dist
+
+.idea/
