@@ -9,7 +9,7 @@ import (
 func TestBase_newBase(t *testing.T) {
 	model := config.ModelConfig{}
 	archivePath := "/tmp/vtsbackup/test-storage/foo.zip"
-	s := newBase(model, archivePath, config.SubConfig{})
+	s, _ := newBase(model, archivePath, config.SubConfig{})
 
 	assert.Equal(t, s.archivePath, archivePath)
 	assert.Equal(t, s.model, model)

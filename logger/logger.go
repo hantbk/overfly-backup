@@ -18,6 +18,8 @@ var (
 	_logFlag     = log.Ldate | log.Ltime
 	_myLog       = log.New(&writer{os.Stdout, "2006/01/02 15:04:05"}, "", 0)
 	sharedLogger Logger
+	isTest       = os.Getenv("GO_ENV") == "test"
+	isDebug      = os.Getenv("DEBUG") == "true"
 )
 
 type writer struct {
@@ -77,7 +79,9 @@ func (logger Logger) Printf(format string, v ...interface{}) {
 
 // Debug log
 func (logger Logger) Debug(v ...interface{}) {
-	logger.logln("[debug] ", fmt.Sprint(v...))
+	if isDebug || isTest {
+		logger.logln("[debug] ", fmt.Sprint(v...))
+	}
 }
 
 // Debugf log
