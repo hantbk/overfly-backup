@@ -1,52 +1,131 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/logger"
 	"github.com/hantbk/vts-backup/model"
+	"github.com/hantbk/vts-backup/scheduler"
+	"github.com/sevlyar/go-daemon"
 	"github.com/spf13/viper"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
+	"log"
 	"os"
+	"syscall"
 )
 
 const (
-	usage = "Backup Agent"
+	usage = "Backup agent."
 )
 
 var (
-	modelName  = ""
-	configFile = ""
+	configFile string
 	version    = "master"
+	signal     = flag.String("s", "", `Send signal to the daemon:
+   quit — graceful shutdown
+   stop — fast shutdown
+   reload — reloading the configuration file`)
 )
+
+func buildFlags(flags []cli.Flag) []cli.Flag {
+	return append(flags, &cli.StringFlag{
+		Name:        "config",
+		Aliases:     []string{"c"},
+		Usage:       "Special a config file",
+		Destination: &configFile,
+	})
+}
+
+func termHandler(sig os.Signal) error {
+	logger.Info("Received QUIT signal, exiting...")
+	scheduler.Stop()
+	os.Exit(0)
+	return nil
+}
+
+func reloadHandler(sig os.Signal) error {
+	logger.Info("Reloading config...")
+	config.Init(configFile)
+
+	return nil
+}
 
 func main() {
 	app := cli.NewApp()
+
 	app.Version = version
-	app.Name = "vts-backup"
+	app.Name = "vtsbackup"
 	app.Usage = usage
 
-	app.Commands = []cli.Command{
+	daemon.AddCommand(daemon.StringFlag(signal, "quit"), syscall.SIGQUIT, termHandler)
+	daemon.AddCommand(daemon.StringFlag(signal, "stop"), syscall.SIGTERM, termHandler)
+	daemon.AddCommand(daemon.StringFlag(signal, "reload"), syscall.SIGHUP, reloadHandler)
+
+	app.Commands = []*cli.Command{
 		{
 			Name: "perform",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:        "model, m",
-					Usage:       "Model name that you want execute",
-					Destination: &modelName,
+			Flags: buildFlags([]cli.Flag{
+				&cli.StringFlag{
+					Name:    "model",
+					Aliases: []string{"m"},
+					Usage:   "Model name that you want perform",
 				},
-				cli.StringFlag{
-					Name:        "config, c",
-					Usage:       "Special a config file",
-					Destination: &configFile,
-				},
+			}),
+			Action: func(ctx *cli.Context) error {
+				var modelNames []string
+				initApplication()
+				modelNames = append(ctx.StringSlice("model"), ctx.Args().Slice()...)
+				perform(modelNames)
+
+				return nil
 			},
-			Action: func(c *cli.Context) error {
-				config.Init(configFile)
-				if len(modelName) == 0 {
-					performAll()
-				} else {
-					performOne(modelName)
+		},
+		{
+			Name:  "start",
+			Usage: "Start as daemon",
+			Flags: buildFlags([]cli.Flag{}),
+			Action: func(ctx *cli.Context) error {
+				fmt.Println("VTSBackup starting...")
+
+				args := []string{"vtsbackup", "run"}
+				if len(configFile) != 0 {
+					args = append(args, "--config", configFile)
 				}
+
+				dm := &daemon.Context{
+					LogFileName: config.LogFilePath,
+					PidFileName: config.PidFilePath,
+					PidFilePerm: 0644,
+					WorkDir:     "./",
+					Args:        args,
+				}
+				d, err := dm.Reborn()
+				if err != nil {
+					log.Fatal("Unable to run: ", err)
+				}
+				if d != nil {
+					return nil
+				}
+				defer dm.Release()
+
+				initApplication()
+				logger.SetLogger(config.LogFilePath)
+				scheduler.Start()
+
+				return nil
+			},
+		},
+		{
+			Name:  "run",
+			Usage: "Run VtsBackup",
+			Flags: buildFlags([]cli.Flag{}),
+			Action: func(ctx *cli.Context) error {
+				initApplication()
+				logger.SetLogger(config.LogFilePath)
+				scheduler.Start()
+
+				web.StartHTTP(version)
 
 				return nil
 			},
@@ -56,24 +135,27 @@ func main() {
 	app.Run(os.Args)
 }
 
-func performAll() {
-	for _, modelConfig := range config.Models {
-		m := model.Model{
-			Config: modelConfig,
-		}
-		m.Perform()
-	}
+func initApplication() {
+	config.Init(configFile)
+
 }
 
-func performOne(modelName string) {
-	for _, modelConfig := range config.Models {
-		if modelConfig.Name == modelName {
-			m := model.Model{
-				Config: modelConfig,
+func perform(modelNames []string) {
+	var models []*model.Model
+	if len(modelNames) == 0 {
+		// perform all
+		models = model.GetModels()
+	} else {
+		for _, name := range modelNames {
+			if m := model.GetModelByName(name); m == nil {
+				logger.Fatalf("Model %s not found in %s", name, viper.ConfigFileUsed())
+			} else {
+				models = append(models, m)
 			}
-			m.Perform()
-			return
 		}
 	}
-	logger.Fatalf("Model %s not found in %s", modelName, viper.ConfigFileUsed())
+
+	for _, m := range models {
+		m.Perform()
+	}
 }

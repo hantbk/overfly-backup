@@ -3,9 +3,11 @@ package config
 import (
 	"fmt"
 	"github.com/hantbk/vts-backup/logger"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -16,19 +18,59 @@ var (
 	Models []ModelConfig
 	// vtsbackup base dir
 	VtsBackupDir string = getVtsBackupDir()
+
+	PidFilePath string = filepath.Join(VtsBackupDir, "vtsbackup.pid")
+	LogFilePath string = filepath.Join(VtsBackupDir, "vtsbackup.log")
+	Web         WebConfig
 )
+
+type WebConfig struct {
+	Port     string
+	Username string
+	Password string
+}
+
+type ScheduleConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
+	// Cron expression
+	Cron string `json:"cron,omitempty"`
+	// Every
+	Every string `json:"every,omitempty"`
+	// At time
+	At string `json:"at,omitempty"`
+}
+
+func (sc ScheduleConfig) String() string {
+	if sc.Enabled {
+		if len(sc.Cron) > 0 {
+			return fmt.Sprintf("cron %s", sc.Cron)
+		} else {
+			if len(sc.At) > 0 {
+				return fmt.Sprintf("every %s at %s", sc.Every, sc.At)
+			} else {
+				return fmt.Sprintf("every %s", sc.Every)
+			}
+		}
+	}
+
+	return "disabled"
+}
 
 // ModelConfig for special case
 type ModelConfig struct {
-	Name         string
-	TempPath     string
-	DumpPath     string
-	CompressWith SubConfig
-	EncryptWith  SubConfig
-	Archive      *viper.Viper
-	Splitter     *viper.Viper
-	Storages     map[string]SubConfig
-	Viper        *viper.Viper
+	Name           string
+	Description    string
+	TempPath       string
+	DumpPath       string
+	Schedule       ScheduleConfig
+	CompressWith   SubConfig
+	EncryptWith    SubConfig
+	Archive        *viper.Viper
+	Splitter       *viper.Viper
+	Storages       map[string]SubConfig
+	DefaultStorage string
+	Notifiers      map[string]SubConfig
+	Viper          *viper.Viper
 }
 
 // SubConfig sub config info
@@ -51,12 +93,15 @@ func getVtsBackupDir() string {
 // - ~/.vtsbackup/vtsbackup.yml
 // - /etc/vtsbackup/vtsbackup.yml
 func Init(configFile string) {
+	logger := logger.Tag("Config")
 	viper.SetConfigType("yaml")
 
 	// Set config file directly
 	if len(configFile) > 0 {
+		logger.Info("Load config from ", configFile)
 		viper.SetConfigFile(configFile)
 	} else {
+		logger.Info("Load config from default paths")
 		viper.SetConfigName("vtsbackup") // name of config file (without extension)
 
 		// ./vtsbackup.yml
@@ -82,6 +127,20 @@ func Init(configFile string) {
 		logger.Warnf("Other users are able to access %s with mode %v", viperConfigFile, info.Mode())
 	}
 
+	// load .env if exists in the same direcotry of used config file and expand variables in the config
+	dotEnv := filepath.Join(filepath.Dir(viperConfigFile), ".env")
+	if _, err := os.Stat(dotEnv); err == nil {
+		if err := godotenv.Load(dotEnv); err != nil {
+			logger.Errorf("Load %s failed: %v", dotEnv, err)
+			return
+		}
+		cfg, _ := os.ReadFile(viperConfigFile)
+		if err := viper.ReadConfig(strings.NewReader(os.ExpandEnv(string(cfg)))); err != nil {
+			logger.Errorf("Load expanded config failed: %v", err)
+			return
+		}
+	}
+
 	viper.Set("useTempWorkDir", false)
 	if workdir := viper.GetString("workdir"); len(workdir) == 0 {
 		// use temp dir as workdir
@@ -102,13 +161,23 @@ func Init(configFile string) {
 	if len(Models) == 0 {
 		logger.Fatalf("No model found in %s", viperConfigFile)
 	}
+
+	// Load web config
+	Web = WebConfig{}
+	viper.SetDefault("web.port", 2703)
+	Web.Port = viper.GetString("web.port")
+	Web.Username = viper.GetString("web.username")
+	Web.Password = viper.GetString("web.password")
 }
 
 func loadModel(key string) (model ModelConfig) {
 	model.Name = key
+
 	model.TempPath = filepath.Join(viper.GetString("workdir"), fmt.Sprintf("%d", time.Now().UnixNano()))
 	model.DumpPath = filepath.Join(model.TempPath, key)
 	model.Viper = viper.Sub("models." + key)
+	model.Description = model.Viper.GetString("description")
+	model.Schedule = ScheduleConfig{Enabled: true}
 
 	model.CompressWith = SubConfig{
 		Type:  model.Viper.GetString("compress_with.type"),
@@ -125,21 +194,38 @@ func loadModel(key string) (model ModelConfig) {
 	model.Splitter = model.Viper.Sub("split_with")
 
 	loadStoragesConfig(&model)
+	loadScheduleConfig(&model)
 
 	if len(model.Storages) == 0 {
 		logger.Fatalf("No storage found in model %s", model.Name)
 	}
 
+	loadNotifiersConfig(&model)
+
 	return
+}
+
+func loadScheduleConfig(model *ModelConfig) {
+	subViper := model.Viper.Sub("schedule")
+	model.Schedule = ScheduleConfig{Enabled: false}
+	if subViper == nil {
+		return
+	}
+
+	model.Schedule = ScheduleConfig{
+		Enabled: true,
+		Cron:    subViper.GetString("cron"),
+		Every:   subViper.GetString("every"),
+		At:      subViper.GetString("at"),
+	}
 }
 
 func loadStoragesConfig(model *ModelConfig) {
 	storageConfigs := map[string]SubConfig{}
 	// Backward compatible with `store_with` config
 	storeWith := model.Viper.Sub("store_with")
-
 	if storeWith != nil {
-		logger.Warn(`[Deprecated] "store_with" is deprecated now, please use "storages" which supports multiple storages.`)
+		logger.Warn(`[Deprecated] "store_with" is deprecated now, please use "storages" which supports multiple storages. Cycler config which usually located in "~/.gobackup/cycler" and named "MODEL.json" should be renamed to "MODEL_STORAGENAME.json", or cycler will start from scratch.`)
 		storageConfigs["store_with"] = SubConfig{
 			Name:  "",
 			Type:  model.Viper.GetString("store_with.type"),
@@ -148,7 +234,6 @@ func loadStoragesConfig(model *ModelConfig) {
 	}
 
 	subViper := model.Viper.Sub("storages")
-
 	for key := range model.Viper.GetStringMap("storages") {
 		storageViper := subViper.Sub(key)
 		storageConfigs[key] = SubConfig{
@@ -156,12 +241,31 @@ func loadStoragesConfig(model *ModelConfig) {
 			Type:  storageViper.GetString("type"),
 			Viper: storageViper,
 		}
+
+		// Set default storage
+		if len(model.DefaultStorage) == 0 {
+			model.DefaultStorage = key
+		}
 	}
 	model.Storages = storageConfigs
+
 }
 
-// GetModelByName get model by name
-func GetModelByName(name string) (model *ModelConfig) {
+func loadNotifiersConfig(model *ModelConfig) {
+	subViper := model.Viper.Sub("notifiers")
+	model.Notifiers = map[string]SubConfig{}
+	for key := range model.Viper.GetStringMap("notifiers") {
+		dbViper := subViper.Sub(key)
+		model.Notifiers[key] = SubConfig{
+			Name:  key,
+			Type:  dbViper.GetString("type"),
+			Viper: dbViper,
+		}
+	}
+}
+
+// GetModelConfigByName get model config by name
+func GetModelConfigByName(name string) (model *ModelConfig) {
 	for _, m := range Models {
 		if m.Name == name {
 			model = &m

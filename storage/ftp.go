@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/hantbk/vts-backup/helper"
 	"github.com/hantbk/vts-backup/logger"
@@ -13,8 +14,6 @@ import (
 	"time"
 )
 
-var log = logger.Tag("FTP")
-
 // FTP storage
 //
 // type: ftp
@@ -24,13 +23,19 @@ var log = logger.Tag("FTP")
 // timeout: 30
 // username:
 // password:
+// tls:
+// explicit_tls:
+// no_check_certificate:
 type FTP struct {
 	Base
-	path     string
-	host     string
-	port     string
-	username string
-	password string
+	path              string
+	host              string
+	port              string
+	username          string
+	password          string
+	tls               bool
+	explicitTLS       bool
+	skipVerifyTLSCert bool
 
 	client *ftp.ServerConn
 }
@@ -45,13 +50,33 @@ func (s *FTP) open() error {
 	s.path = s.viper.GetString("path")
 	s.username = s.viper.GetString("username")
 	s.password = s.viper.GetString("password")
+	s.tls = s.viper.GetBool("tls")
+	s.explicitTLS = s.viper.GetBool("explicit_tls")
+	s.skipVerifyTLSCert = s.viper.GetBool("no_check_certificate")
 
 	if len(s.host) == 0 || len(s.username) == 0 || len(s.password) == 0 {
 		return fmt.Errorf("FTP host, username or password is empty")
 	}
 
+	var options []ftp.DialOption
 	timeout := s.viper.GetDuration("timeout") * time.Second
-	client, err := ftp.Dial(s.host+":"+s.port, ftp.DialWithTimeout(timeout))
+	options = append(options, ftp.DialWithTimeout(timeout))
+
+	// FTP Over TLS / FTPS
+	var tlsConfig *tls.Config
+	if s.tls || s.explicitTLS {
+		tlsConfig = &tls.Config{
+			ServerName:         s.host,
+			InsecureSkipVerify: s.skipVerifyTLSCert,
+		}
+	}
+	if s.tls {
+		options = append(options, ftp.DialWithTLS(tlsConfig))
+	} else if s.explicitTLS {
+		options = append(options, ftp.DialWithExplicitTLS(tlsConfig))
+	}
+
+	client, err := ftp.Dial(s.host+":"+s.port, options...)
 	if err != nil {
 		return err
 	}
@@ -73,7 +98,6 @@ func (s *FTP) mkdir(rpath string) error {
 	logger := logger.Tag("FTP")
 	_, err := s.client.GetEntry(rpath)
 	logger.Debugf("GetEntry %s: %v", rpath, err)
-	log.Debugf("GetEntry %s: %v", rpath, err)
 	if err != nil {
 		if err.(*textproto.Error).Msg == "Can't check for file existence" {
 			if err := s.client.MakeDir(rpath); err != nil {
@@ -135,10 +159,36 @@ func (s *FTP) delete(fileKey string) error {
 	if !strings.HasSuffix(fileKey, "/") {
 		// file
 		return s.client.Delete(remotePath)
-	} else {
-		// directory
-		return s.client.RemoveDir(remotePath)
 	}
 
-	return nil
+	// directory
+	return s.client.RemoveDir(remotePath)
+}
+
+// list files
+func (s *FTP) list(parent string) ([]FileItem, error) {
+	remotePath := path.Join(s.path, parent)
+
+	entries, err := s.client.List(remotePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []FileItem
+	for _, entry := range entries {
+		if entry.Type == ftp.EntryTypeFile {
+			items = append(items, FileItem{
+				Filename:     entry.Name,
+				Size:         int64(entry.Size),
+				LastModified: entry.Time,
+			})
+		}
+	}
+
+	return items, nil
+}
+
+// Get FTP download URL
+func (s *FTP) download(fileKey string) (string, error) {
+	return "", fmt.Errorf("FTP download is not supported")
 }

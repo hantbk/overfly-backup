@@ -22,6 +22,8 @@ builds:
 archives:
   - format: tar.gz
     name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+release:
+  prerelease: auto
 
 changelog:
   sort: asc

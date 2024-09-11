@@ -2,24 +2,26 @@ package storage
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/hako/durafmt"
 	"github.com/hantbk/vts-backup/logger"
 	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/dustin/go-humanize"
+	"github.com/hako/durafmt"
 )
 
 // S3 - Amazon S3 storage
 //
 // type: s3
-// bucket: vtsbackup-test
+// bucket: backup-test
 // region: us-east-1
 // path: backups
 // access_key_id: your-access-key-id
@@ -41,10 +43,12 @@ func (s S3) providerName() string {
 }
 
 func (s S3) defaultRegion() string {
+
 	return "us-east-1"
 }
 
 func (s S3) defaultEndpoint() *string {
+
 	return aws.String("")
 }
 
@@ -129,7 +133,7 @@ func (s *S3) upload(fileKey string) (err error) {
 			Body:   f,
 		}
 
-		logger.Info(fmt.Sprintf("-> Uploading (%d MiB)...", info.Size()/(1024*1024)))
+		logger.Infof("-> Uploading (%s)...", humanize.Bytes(uint64(info.Size())))
 
 		start := time.Now()
 
@@ -177,4 +181,56 @@ func (s *S3) delete(fileKey string) (err error) {
 	}
 	_, err = s.client.S3.DeleteObject(input)
 	return
+}
+
+// List the objects in the bucket with the prefix = parent
+func (s *S3) list(parent string) ([]FileItem, error) {
+	remotePath := filepath.Join(s.path, parent)
+	continueToken := ""
+	var items []FileItem
+
+	for {
+		input := &s3.ListObjectsV2Input{
+			Bucket:            aws.String(s.bucket),
+			Prefix:            aws.String(remotePath),
+			ContinuationToken: aws.String(continueToken),
+		}
+
+		result, err := s.client.S3.ListObjectsV2(input)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list objects, %v", err)
+		}
+
+		for _, object := range result.Contents {
+			items = append(items, FileItem{
+				Filename:     *object.Key,
+				Size:         *object.Size,
+				LastModified: *object.LastModified,
+			})
+		}
+
+		if *result.IsTruncated {
+			continueToken = *result.NextContinuationToken
+		} else {
+			break
+		}
+	}
+
+	return items, nil
+}
+
+// Get the object download URL by fileKey (include remote_path)
+func (s *S3) download(fileKey string) (string, error) {
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fileKey),
+	}
+
+	req, _ := s.client.S3.GetObjectRequest(input)
+	url, err := req.Presign(1 * time.Hour)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign request, %v", err)
+	}
+
+	return url, nil
 }
