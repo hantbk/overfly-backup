@@ -49,6 +49,7 @@ func (m Model) Perform() (err error) {
 		}
 	}
 
+	// It always to use compressor, default use tar, even not enable compress.
 	archivePath, err := compressor.Run(m.Config)
 	if err != nil {
 		return

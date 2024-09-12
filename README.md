@@ -117,6 +117,15 @@ And then start daemon:
 
 > NOTE: If you wants start without daemon, use `vtsbackup run` instead.
 
+### Start Daemon & Web UI
+ Backup built a HTTP Server for Web UI, you can start it by `vtsbackup start`.
+
+ It also will handle the backup schedule.
+
+ ```bash
+ $ vtsbackup start
+ Starting API server on port http://127.0.0.1:2703
+
 ## Signal handling
 
 VtsBackup will handle the following signals:

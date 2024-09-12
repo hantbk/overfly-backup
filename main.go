@@ -3,13 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
+	"syscall"
+
 	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/logger"
 	"github.com/hantbk/vts-backup/model"
 	"github.com/hantbk/vts-backup/scheduler"
-	"log"
-	"os"
-	"syscall"
+	"github.com/hantbk/vts-backup/web"
 
 	"github.com/sevlyar/go-daemon"
 	"github.com/spf13/viper"
@@ -127,7 +129,7 @@ func main() {
 				logger.SetLogger(config.LogFilePath)
 				scheduler.Start()
 
-// 				web.StartHTTP(version)
+				web.StartHTTP(version)
 
 				return nil
 			},

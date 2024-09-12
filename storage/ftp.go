@@ -121,7 +121,8 @@ func (s *FTP) upload(fileKey string) error {
 		// directory
 		// 2022.12.04.07.09.47/2022.12.04.07.09.47.tar.xz-000
 		fileKeys = s.fileKeys
-		remoteDir := filepath.Join(s.path, filepath.Base(s.archivePath))
+		remotePath := filepath.Join(s.path, fileKey)
+ 		remoteDir := filepath.Dir(remotePath)
 		// mkdir
 		if err := s.mkdir(remoteDir); err != nil {
 			return err
@@ -133,14 +134,15 @@ func (s *FTP) upload(fileKey string) error {
 	}
 
 	for _, key := range fileKeys {
-		filePath := filepath.Join(filepath.Dir(s.archivePath), key)
-		f, err := os.Open(filePath)
+		sourcePath := filepath.Join(filepath.Dir(s.archivePath), key)
+ 		remotePath := filepath.Join(s.path, key)
+
+ 		f, err := os.Open(sourcePath)
 		if err != nil {
-			return fmt.Errorf("failed to open file %q, %v", filePath, err)
+			return fmt.Errorf("failed to open file %q, %v", sourcePath, err)
 		}
 		defer f.Close()
 
-		remotePath := filepath.Join(s.path, key)
 		if err := s.client.Stor(remotePath, f); err != nil {
 			return err
 		}

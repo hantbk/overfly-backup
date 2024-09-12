@@ -2,14 +2,15 @@ package storage
 
 import (
 	"fmt"
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
 	"io"
 	"os"
 	"os/user"
 	"path"
 	"path/filepath"
 	"time"
+
+	"github.com/hantbk/vts-backup/helper"
+	"github.com/hantbk/vts-backup/logger"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -92,7 +93,8 @@ func (s *SFTP) upload(fileKey string) error {
 		// directory
 		// 2022.12.04.07.09.47/2022.12.04.07.09.47.tar.xz-000
 		fileKeys = s.fileKeys
-		remoteDir := filepath.Join(s.path, filepath.Base(s.archivePath))
+		remotePath := filepath.Join(s.path, fileKey)
+		remoteDir := filepath.Dir(remotePath)
 		// mkdir
 		if err := s.client.MkdirAll(remoteDir); err != nil {
 			return err
@@ -105,9 +107,9 @@ func (s *SFTP) upload(fileKey string) error {
 
 	//defer s.client.Session.Close()
 	for _, key := range fileKeys {
-		filePath := filepath.Join(filepath.Dir(s.archivePath), key)
+		sourcePath := filepath.Join(filepath.Dir(s.archivePath), key)
 		remotePath := filepath.Join(s.path, key)
-		if err := s.up(filePath, remotePath); err != nil {
+		if err := s.up(sourcePath, remotePath); err != nil {
 			return err
 		}
 	}
