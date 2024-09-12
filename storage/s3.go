@@ -2,20 +2,20 @@ package storage
 
 import (
 	"fmt"
-	"github.com/hantbk/vts-backup/logger"
 	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/hantbk/vts-backup/helper"
+	"github.com/hantbk/vts-backup/logger"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/dustin/go-humanize"
-	"github.com/hako/durafmt"
 )
 
 // S3 - Amazon S3 storage
@@ -27,23 +27,36 @@ import (
 // access_key_id: your-access-key-id
 // secret_access_key: your-secret-access-key
 // max_retries: 5
+// storage_class:
 // timeout: 300
 type S3 struct {
 	Base
-	Service string
-
-	bucket string
-	path   string
-	client *s3manager.Uploader
+	Service      string
+	bucket       string
+	path         string
+	client       *s3manager.Uploader
+	storageClass string
+	awsCfg       *aws.Config
 }
 
 func (s S3) providerName() string {
 
+	switch s.Service {
+	case "s3":
+		return "AWS S3"
+	case "minio":
+		return "Minio"
+	}
 	return "AWS S3"
 }
 
 func (s S3) defaultRegion() string {
-
+	switch s.Service {
+	case "s3":
+		return "us-east-1"
+	case "minio":
+		return "us-east-1"
+	}
 	return "us-east-1"
 }
 
@@ -52,11 +65,36 @@ func (s S3) defaultEndpoint() *string {
 	return aws.String("")
 }
 
+func (s *S3) defaultStorageClass() string {
+	switch s.Service {
+	case "s3":
+		return "STANDARD_IA"
+	case "minio":
+		return ""
+	}
+
+	return ""
+}
+
+func (s *S3) forcePathStyle() bool {
+	switch s.Service {
+	case "tos", "oss":
+		return false
+	default:
+		return true
+	}
+}
+
 func (s *S3) init() {
+	if len(s.Service) == 0 {
+		s.Service = "s3"
+	}
+
 	s.viper.SetDefault("region", s.defaultRegion())
 	s.viper.SetDefault("endpoint", s.defaultEndpoint())
 	s.viper.SetDefault("max_retries", 3)
 	s.viper.SetDefault("timeout", "300")
+	s.viper.SetDefault("storage_class", s.defaultStorageClass())
 }
 
 func (s *S3) open() (err error) {
@@ -67,12 +105,22 @@ func (s *S3) open() (err error) {
 
 	if len(endpoint) > 0 {
 		cfg.Endpoint = aws.String(endpoint)
-		cfg.S3ForcePathStyle = aws.Bool(true)
+	}
+
+	cfg.S3ForcePathStyle = aws.Bool(s.forcePathStyle())
+	if s.viper.IsSet("force_path_style") {
+		cfg.S3ForcePathStyle = aws.Bool(s.viper.GetBool("force_path_style"))
+	}
+
+	accessKeyId := s.viper.GetString("access_key_id")
+	secretAccessKey := s.viper.GetString("secret_access_key")
+	if len(secretAccessKey) == 0 {
+		secretAccessKey = s.viper.GetString("access_key_secret")
 	}
 
 	cfg.Credentials = credentials.NewStaticCredentials(
-		s.viper.GetString("access_key_id"),
-		s.viper.GetString("secret_access_key"),
+		accessKeyId,
+		secretAccessKey,
 		s.viper.GetString("token"),
 	)
 
@@ -82,13 +130,19 @@ func (s *S3) open() (err error) {
 	s.bucket = s.viper.GetString("bucket")
 	s.path = s.viper.GetString("path")
 
+	// Only present storage_class when it is set.
+	if len(s.viper.GetString("storage_class")) > 0 {
+		s.storageClass = s.viper.GetString("storage_class")
+	}
+
 	timeout := s.viper.GetInt("timeout")
 	uploadTimeoutDuration := time.Duration(timeout) * time.Second
 
 	httpClient := &http.Client{Timeout: uploadTimeoutDuration}
 	cfg.HTTPClient = httpClient
+	s.awsCfg = cfg
 
-	sess := session.Must(session.NewSession(cfg))
+	sess := session.Must(session.NewSession(s.awsCfg))
 	s.client = s3manager.NewUploader(sess)
 
 	return
@@ -113,40 +167,33 @@ func (s *S3) upload(fileKey string) (err error) {
 
 	for _, key := range fileKeys {
 		sourcePath := filepath.Join(filepath.Dir(s.archivePath), key)
- 		remotePath := filepath.Join(s.path, key)
+		remotePath := filepath.Join(s.path, key)
 
- 		f, err := os.Open(sourcePath)
- 		if err != nil {
- 			return fmt.Errorf("failed to open file %q, %v", sourcePath, err)
- 		}
-
+		f, err := os.Open(sourcePath)
+		if err != nil {
+			return fmt.Errorf("failed to open file %q, %v", sourcePath, err)
+		}
 		defer f.Close()
 
-		info, err := f.Stat()
-		if err != nil {
-			return fmt.Errorf("failed to get size of file %q, %v", sourcePath, err)
-		}
+		progress := helper.NewProgressBar(logger, f)
 
 		input := &s3manager.UploadInput{
-			Bucket: aws.String(s.bucket),
-			Key:    aws.String(remotePath),
-			Body:   f,
+			Bucket:       aws.String(s.bucket),
+			Key:          aws.String(remotePath),
+			Body:         progress.Reader,
+			StorageClass: aws.String(s.storageClass),
 		}
-
-		logger.Infof("-> Uploading (%s)...", humanize.Bytes(uint64(info.Size())))
-
-		start := time.Now()
 
 		result, err := s.client.Upload(input, func(uploader *s3manager.Uploader) {
 			// set the part size as low as possible to avoid timeouts and aborts
 			// also set concurrency to 1 for the same reason
-			var partSize int64 = 5242880 // 5MiB
-			maxParts := math.Ceil(float64(info.Size() / partSize))
+			var partSize int64 = 64 * 1024 * 1024 // 64MiB
+			maxParts := math.Ceil(float64(progress.FileLength / partSize))
 
 			// 10000 parts is the limit for AWS S3. If the resulting number of parts would exceed that limit, increase the
 			// part size as much as needed but as little possible
 			if maxParts > 10000 {
-				partSize = int64(math.Ceil(float64(info.Size()) / 10000))
+				partSize = int64(math.Ceil(float64(progress.FileLength) / 10000))
 			}
 
 			uploader.Concurrency = 1
@@ -155,19 +202,14 @@ func (s *S3) upload(fileKey string) (err error) {
 		})
 
 		if err != nil {
-			return fmt.Errorf("failed to upload file, %v", err)
+			return progress.Errorf("%v", err)
 		}
 
-		t := time.Now()
-		elapsed := t.Sub(start)
+		progress.Done(result.Location)
 
-		logger.Info("=>", result.Location)
 		if s.Service == "s3" {
 			logger.Info("=>", fmt.Sprintf("s3://%s/%s", s.bucket, remotePath))
 		}
-		rate := math.Ceil(float64(info.Size()) / (elapsed.Seconds() * 1024 * 1024))
-
-		logger.Info(fmt.Sprintf("Duration %v, rate %.1f MiB/s", durafmt.Parse(elapsed).LimitFirstN(2).String(), rate))
 	}
 
 	return nil

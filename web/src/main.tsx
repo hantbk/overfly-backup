@@ -43,29 +43,15 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
             </div>
             <div className="footer">
               <div className="copyright flex items-center space-x-1">
-                <img
-                  src="https://user-images.githubusercontent.com/5518/205909959-12b92929-4ac5-4bb5-9111-6f9a3ed76cf6.png"
-                  className="h-6 mx-auto"
-                />
                 <div>
                   <a
-                    href="https://gobackup.github.io"
                     className="hover:text-blue"
                     target="_blank"
                   >
-                    GoBackup
+                    Backup Service
                   </a>
-                  <span> powered.</span>
+                  <span> @ 2024</span>
                 </div>
-              </div>
-              <div className="links">
-                <a
-                  href="https://github.com/gobackup/gobackup"
-                  title="GitHub"
-                  target="_blank"
-                >
-                  <Icon name="github" mode="fill" />
-                </a>
               </div>
             </div>
           </div>

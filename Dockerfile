@@ -22,4 +22,4 @@ RUN apk add \
 ADD install /install
 RUN /install ${VERSION} && rm /install
 
-CMD ["/usr/local/bin/vtsbackup"]
+CMD ["/usr/local/bin/vtsbackup", "run"]

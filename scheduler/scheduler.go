@@ -2,17 +2,25 @@ package scheduler
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
+	"github.com/fsnotify/fsnotify"
 	"github.com/go-co-op/gocron"
 	"github.com/hantbk/vts-backup/config"
 	superlogger "github.com/hantbk/vts-backup/logger"
 	"github.com/hantbk/vts-backup/model"
-	"sync"
-	"time"
 )
 
 var (
 	mycron *gocron.Scheduler
 )
+
+func init() {
+	config.OnConfigChange(func(in fsnotify.Event) {
+		Restart()
+	})
+}
 
 // Start scheduler
 func Start() error {
@@ -61,6 +69,13 @@ func Start() error {
 	mycron.StartAsync()
 
 	return nil
+}
+
+func Restart() error {
+	logger := superlogger.Tag("Scheduler")
+	logger.Info("Reloading...")
+	Stop()
+	return Start()
 }
 
 func Stop() {

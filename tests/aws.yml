@@ -1,0 +1,13 @@
+models:
+  aws:
+    archive:
+      includes:
+        - /etc/hosts
+    storages:
+      s3:
+        type: s3
+        bucket: vts-backup-test
+        region: us-east-1
+        path: backups
+        access_key_id: $S3_ACCESS_KEY_ID
+        secret_access_key: $S3_SECRET_ACCESS_KEY

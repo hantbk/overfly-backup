@@ -15,6 +15,7 @@
 - SCP - Upload via SSH copy 
 - S3 - Amazon S3
 - WebDAV - For Synology NAS 
+- MinIO - S3 compatible object storage server
 
 ### Compressor
 
@@ -140,4 +141,69 @@ VtsBackup will handle the following signals:
  $ kill -HUP 20443
  # Exit daemon
  $ kill -QUIT 20443
+ ```
+
+## Install the MinIO Server and Client
+
+ Use can use [MinIO](https://min.io) for local development. It is a self-hosted S3-compatible object storage server.
+
+  ### Install MinIO Server
+ ```bash
+brew install minio/stable/minio
+MINIO_ROOT_USER=admin MINIO_ROOT_PASSWORD=password minio server /mnt/data --console-address ":9001"
+ ```
+
+  ### Install MinIO Client
+  
+  ```bash
+brew install minio/stable/mc
+mc alias set myminio/ http://MINIO-SERVER MYUSER MYPASSWORD
+
+```
+
+ Start MinIO server:
+
+ ```bash
+ minio server /tmp/minio
+ ```
+
+ And then visit http://localhost:9000 to see the MinIO browser.
+
+ The Admin user:
+
+ - username: `minioadmin`
+ - password: `minioadmin`
+
+ ## Initialize a MinIO bucket
+
+ Now we need to create a bucket for testing, we will use the following credentials:
+
+ - Bucket: `gobackup-test`
+ - AccessKeyId: `test-user`
+ - SecretAccessKey: `test-user-secret`
+
+ ### Configure MinIO Client
+
+ Config MinIO Client with a default alias: `minio`
+
+ ```bash
+ mc config host add minio http://localhost:9000 minioadmin minioadmin
+ ```
+
+ Create a Bucket
+
+ ```bash
+ mc mb minio/gobackup-test
+ ```
+
+ Add Test AccessKeyId and SecretAccessKey.
+
+ With
+
+ - access_key_id: `test-user`
+ - secret_access_key: `test-user-secret`
+
+ ```bash
+ mc admin user add minio test-user test-user-secret
+ mc admin policy attach minio readwrite --user test-user
  ```

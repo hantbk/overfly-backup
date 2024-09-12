@@ -114,6 +114,23 @@ func setupRouter(version string) *gin.Engine {
 
 	})
 
+	r.Use(func(c *gin.Context) {
+		c.Next()
+
+		// Skip if no errors
+		if len(c.Errors) == 0 {
+			return
+		}
+
+		for _, err := range c.Errors {
+			logger.Error(err)
+		}
+		c.AbortWithStatusJSON(c.Writer.Status(), gin.H{
+			"message": c.Errors.String(),
+		})
+
+	})
+
 	group := r.Group("/api")
 	group.GET("/config", getConfig)
 	group.GET("/list", list)

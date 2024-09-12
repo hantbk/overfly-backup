@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"syscall"
 
@@ -49,7 +48,10 @@ func termHandler(sig os.Signal) error {
 
 func reloadHandler(sig os.Signal) error {
 	logger.Info("Reloading config...")
-	config.Init(configFile)
+	err := config.Init(configFile)
+	if err != nil {
+		logger.Error(err)
+	}
 
 	return nil
 }
@@ -77,7 +79,10 @@ func main() {
 			}),
 			Action: func(ctx *cli.Context) error {
 				var modelNames []string
-				initApplication()
+				err := initApplication()
+				if err != nil {
+					return err
+				}
 				modelNames = append(ctx.StringSlice("model"), ctx.Args().Slice()...)
 				perform(modelNames)
 
@@ -97,7 +102,7 @@ func main() {
 				}
 
 				dm := &daemon.Context{
-					LogFileName: config.LogFilePath,
+					// LogFileName: config.LogFilePath,
 					PidFileName: config.PidFilePath,
 					PidFilePerm: 0644,
 					WorkDir:     "./",
@@ -106,15 +111,21 @@ func main() {
 
 				d, err := dm.Reborn()
 				if err != nil {
-					log.Fatal("Unable to run: ", err)
+					logger.Error(err)
+					logger.Fatalf("Start failed, please check is there another instance running.")
 				}
 				if d != nil {
 					return nil
 				}
 				defer dm.Release()
 
-				initApplication()
 				logger.SetLogger(config.LogFilePath)
+
+				err = initApplication()
+				if err != nil {
+					return err
+				}
+
 				scheduler.Start()
 
 				return nil
@@ -125,8 +136,14 @@ func main() {
 			Usage: "Run VtsBackup",
 			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
-				initApplication()
+
 				logger.SetLogger(config.LogFilePath)
+
+				err := initApplication()
+				if err != nil {
+					return err
+				}
+
 				scheduler.Start()
 
 				web.StartHTTP(version)
@@ -139,8 +156,13 @@ func main() {
 	app.Run(os.Args)
 }
 
-func initApplication() {
-	config.Init(configFile)
+func initApplication() error {
+	err := config.Init(configFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func perform(modelNames []string) {

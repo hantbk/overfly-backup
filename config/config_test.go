@@ -1,9 +1,15 @@
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+	testConfigFile = "../vtsbackup_test.yml"
 )
 
 func init() {
@@ -15,7 +21,7 @@ func init() {
 	if err != nil {
 		return
 	}
-	Init("../vtsbackup_test.yml")
+	Init(testConfigFile)
 }
 
 func TestModelsLength(t *testing.T) {
@@ -63,6 +69,9 @@ func TestModel(t *testing.T) {
 func Test_otherModels(t *testing.T) {
 	model := GetModelConfigByName("normal_files")
 
+	// default_storage
+	assert.Equal(t, model.DefaultStorage, "scp")
+
 	// schedule
 	schedule := model.Schedule
 	assert.Equal(t, true, schedule.Enabled)
@@ -107,4 +116,47 @@ func TestExpandEnv(t *testing.T) {
 	assert.Equal(t, model.Storages["s3"].Type, "s3")
 	assert.Equal(t, model.Storages["s3"].Viper.GetString("access_key_id"), "xxxxxxxxxxxxxxxxxxxx")
 	assert.Equal(t, model.Storages["s3"].Viper.GetString("secret_access_key"), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+}
+
+func TestWebConfig(t *testing.T) {
+	assert.Equal(t, Web.Host, "127.0.0.1")
+	assert.Equal(t, Web.Port, "2703")
+	assert.Equal(t, Web.Username, "vtsbackup")
+	assert.Equal(t, Web.Password, "123456")
+}
+
+func TestWatchConfigToReload(t *testing.T) {
+	Init(testConfigFile)
+	lastUpdatedAt := UpdatedAt.UnixNano()
+	time.Sleep(1 * time.Millisecond)
+
+	// Touch `testConfigFile` to trigger file changes event
+	err := updateFile(testConfigFile)
+	assert.Nil(t, err)
+
+	// Wait for reload
+	time.Sleep(10 * time.Millisecond)
+
+	// check config reload updated_at
+	assert.NotEqual(t, lastUpdatedAt, UpdatedAt.UnixNano())
+}
+
+func updateFile(path string) error {
+	// Open file and write it again without any changes
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(path, data, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TestInitWithNotExistsConfigFile(t *testing.T) {
+	err := Init("config/path/not-exist.yml")
+	assert.NotNil(t, err)
 }

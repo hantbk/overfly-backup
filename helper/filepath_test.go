@@ -1,10 +1,11 @@
 package helper
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsExistsPath(t *testing.T) {
@@ -40,5 +41,23 @@ func TestExplandHome(t *testing.T) {
 	assert.NotEqual(t, newPath[:2], "~/")
 
 	newPath = ExplandHome("~/foo/bar/dar")
+	assert.Equal(t, newPath, path.Join(os.Getenv("HOME"), "/foo/bar/dar"))
+}
+
+func TestAbsolutePath(t *testing.T) {
+	pwd, _ := os.Getwd()
+	newPath := AbsolutePath("foo/bar")
+	assert.Equal(t, newPath, path.Join(pwd, "foo/bar"))
+
+	newPath = AbsolutePath("/home/hant/111")
+	assert.Equal(t, newPath, "/home/hant/111")
+
+	newPath = AbsolutePath("~")
+	assert.NotEqual(t, newPath[:2], "~/")
+
+	newPath = AbsolutePath("~/")
+	assert.NotEqual(t, newPath[:2], "~/")
+
+	newPath = AbsolutePath("~/foo/bar/dar")
 	assert.Equal(t, newPath, path.Join(os.Getenv("HOME"), "/foo/bar/dar"))
 }

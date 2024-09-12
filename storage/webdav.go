@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/hantbk/vts-backup/helper"
 	"github.com/hantbk/vts-backup/logger"
 
 	"github.com/studio-b12/gowebdav"
@@ -86,11 +87,11 @@ func (s *WebDAV) upload(fileKey string) error {
 		}
 		defer f.Close()
 
-		if err := s.client.WriteStream(remotePath, f, 0644); err != nil {
-			return err
+		progress := helper.NewProgressBar(logger, f)
+		if err := s.client.WriteStream(remotePath, progress.Reader, 0644); err != nil {
+			return progress.Errorf("upload failed %v", err)
 		}
-
-		logger.Infof("Store %s succeeded", remotePath)
+		progress.Done(remotePath)
 	}
 
 	logger.Info("Store succeeded")

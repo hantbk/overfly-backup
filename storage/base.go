@@ -2,13 +2,14 @@ package storage
 
 import (
 	"fmt"
-	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/logger"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
+
+	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vts-backup/logger"
+	"github.com/spf13/viper"
 )
 
 // Base storage
@@ -99,8 +100,10 @@ func new(model config.ModelConfig, archivePath string, storageConfig config.SubC
 		s = &SFTP{Base: base}
 	case "s3":
 		s = &S3{Base: base, Service: "s3"}
+	case "minio":
+		s = &S3{Base: base, Service: "minio"}
 	default:
-		panic(fmt.Errorf("[%s] storage type has not implement", storageConfig.Type))
+		logger.Errorf("[%s] storage type has not implement", storageConfig.Type)
 	}
 
 	return base, s

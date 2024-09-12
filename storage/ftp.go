@@ -3,15 +3,16 @@ package storage
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
-	"github.com/jlaffaye/ftp"
 	"net/textproto"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/hantbk/vts-backup/helper"
+	"github.com/hantbk/vts-backup/logger"
+	"github.com/jlaffaye/ftp"
 )
 
 // FTP storage
@@ -122,7 +123,7 @@ func (s *FTP) upload(fileKey string) error {
 		// 2022.12.04.07.09.47/2022.12.04.07.09.47.tar.xz-000
 		fileKeys = s.fileKeys
 		remotePath := filepath.Join(s.path, fileKey)
- 		remoteDir := filepath.Dir(remotePath)
+		remoteDir := filepath.Dir(remotePath)
 		// mkdir
 		if err := s.mkdir(remoteDir); err != nil {
 			return err
@@ -135,19 +136,19 @@ func (s *FTP) upload(fileKey string) error {
 
 	for _, key := range fileKeys {
 		sourcePath := filepath.Join(filepath.Dir(s.archivePath), key)
- 		remotePath := filepath.Join(s.path, key)
+		remotePath := filepath.Join(s.path, key)
 
- 		f, err := os.Open(sourcePath)
+		f, err := os.Open(sourcePath)
 		if err != nil {
 			return fmt.Errorf("failed to open file %q, %v", sourcePath, err)
 		}
 		defer f.Close()
 
-		if err := s.client.Stor(remotePath, f); err != nil {
-			return err
+		progress := helper.NewProgressBar(logger, f)
+		if err := s.client.Stor(remotePath, progress.Reader); err != nil {
+			return progress.Errorf("upload failed %v", err)
 		}
-
-		logger.Infof("Store %s succeeded", remotePath)
+		progress.Done(remotePath)
 	}
 
 	logger.Info("Store succeeded")
