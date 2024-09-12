@@ -3,12 +3,13 @@ package config
 import (
 	"fmt"
 	"github.com/hantbk/vts-backup/logger"
-	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -21,7 +22,8 @@ var (
 
 	PidFilePath string = filepath.Join(VtsBackupDir, "vtsbackup.pid")
 	LogFilePath string = filepath.Join(VtsBackupDir, "vtsbackup.log")
-	Web         WebConfig
+
+	Web WebConfig
 )
 
 type WebConfig struct {
@@ -73,13 +75,6 @@ type ModelConfig struct {
 	Viper          *viper.Viper
 }
 
-// SubConfig sub config info
-type SubConfig struct {
-	Name  string
-	Type  string
-	Viper *viper.Viper
-}
-
 func getVtsBackupDir() string {
 	dir := os.Getenv("VTSBACKUP_DIR")
 	if len(dir) == 0 {
@@ -88,36 +83,41 @@ func getVtsBackupDir() string {
 	return dir
 }
 
+// SubConfig sub config info
+type SubConfig struct {
+	Name  string
+	Type  string
+	Viper *viper.Viper
+}
+
 // loadConfig from:
 // - ./vtsbackup.yml
 // - ~/.vtsbackup/vtsbackup.yml
 // - /etc/vtsbackup/vtsbackup.yml
 func Init(configFile string) {
 	logger := logger.Tag("Config")
+
 	viper.SetConfigType("yaml")
 
-	// Set config file directly
+	// set config file directly
 	if len(configFile) > 0 {
-		logger.Info("Load config from ", configFile)
+		logger.Info("Load config:", configFile)
 		viper.SetConfigFile(configFile)
 	} else {
-		logger.Info("Load config from default paths")
-		viper.SetConfigName("vtsbackup") // name of config file (without extension)
+		logger.Info("Load config from default path.")
+		viper.SetConfigName("vtsbackup")
 
 		// ./vtsbackup.yml
 		viper.AddConfigPath(".")
-
 		// ~/.vtsbackup/vtsbackup.yml
-		viper.AddConfigPath("$HOME/.vtsbackup")
-
+		viper.AddConfigPath("$HOME/.vtsbackup") // call multiple times to add many search paths
 		// /etc/vtsbackup/vtsbackup.yml
-		viper.AddConfigPath("/etc/vtsbackup")
-
+		viper.AddConfigPath("/etc/vtsbackup/") // path to look for the config file in
 	}
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Error("Load backup config fail: ", err)
+		logger.Error("Load vtsbackup config failed: ", err)
 		return
 	}
 
@@ -134,11 +134,12 @@ func Init(configFile string) {
 			logger.Errorf("Load %s failed: %v", dotEnv, err)
 			return
 		}
-		cfg, _ := os.ReadFile(viperConfigFile)
-		if err := viper.ReadConfig(strings.NewReader(os.ExpandEnv(string(cfg)))); err != nil {
-			logger.Errorf("Load expanded config failed: %v", err)
-			return
-		}
+	}
+
+	cfg, _ := os.ReadFile(viperConfigFile)
+	if err := viper.ReadConfig(strings.NewReader(os.ExpandEnv(string(cfg)))); err != nil {
+		logger.Errorf("Load expanded config failed: %v", err)
+		return
 	}
 
 	viper.Set("useTempWorkDir", false)
@@ -176,8 +177,9 @@ func loadModel(key string) (model ModelConfig) {
 	model.TempPath = filepath.Join(viper.GetString("workdir"), fmt.Sprintf("%d", time.Now().UnixNano()))
 	model.DumpPath = filepath.Join(model.TempPath, key)
 	model.Viper = viper.Sub("models." + key)
+
 	model.Description = model.Viper.GetString("description")
-	model.Schedule = ScheduleConfig{Enabled: true}
+	model.Schedule = ScheduleConfig{Enabled: false}
 
 	model.CompressWith = SubConfig{
 		Type:  model.Viper.GetString("compress_with.type"),
@@ -190,11 +192,10 @@ func loadModel(key string) (model ModelConfig) {
 	}
 
 	model.Archive = model.Viper.Sub("archive")
-
 	model.Splitter = model.Viper.Sub("split_with")
 
-	loadStoragesConfig(&model)
 	loadScheduleConfig(&model)
+	loadStoragesConfig(&model)
 
 	if len(model.Storages) == 0 {
 		logger.Fatalf("No storage found in model %s", model.Name)

@@ -2,11 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"github.com/fatih/color"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 type Logger struct {
@@ -32,7 +33,6 @@ func (w writer) Write(b []byte) (n int, err error) {
 }
 
 func init() {
-	isTest := os.Getenv("GO_ENV") == "test"
 	if isTest {
 		os.MkdirAll("../log", 0777)
 		logfile, _ := os.OpenFile("../log/test.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)

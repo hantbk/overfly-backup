@@ -7,12 +7,13 @@ import (
 	"github.com/hantbk/vts-backup/logger"
 	"github.com/hantbk/vts-backup/model"
 	"github.com/hantbk/vts-backup/scheduler"
-	"github.com/sevlyar/go-daemon"
-	"github.com/spf13/viper"
-	"github.com/urfave/cli/v2"
 	"log"
 	"os"
 	"syscall"
+
+	"github.com/sevlyar/go-daemon"
+	"github.com/spf13/viper"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -23,9 +24,9 @@ var (
 	configFile string
 	version    = "master"
 	signal     = flag.String("s", "", `Send signal to the daemon:
-   quit — graceful shutdown
-   stop — fast shutdown
-   reload — reloading the configuration file`)
+  quit — graceful shutdown
+  stop — fast shutdown
+  reload — reloading the configuration file`)
 )
 
 func buildFlags(flags []cli.Flag) []cli.Flag {
@@ -66,7 +67,7 @@ func main() {
 		{
 			Name: "perform",
 			Flags: buildFlags([]cli.Flag{
-				&cli.StringFlag{
+				&cli.StringSliceFlag{
 					Name:    "model",
 					Aliases: []string{"m"},
 					Usage:   "Model name that you want perform",
@@ -86,7 +87,7 @@ func main() {
 			Usage: "Start as daemon",
 			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
-				fmt.Println("VTSBackup starting...")
+				fmt.Println("VtsBackup starting...")
 
 				args := []string{"vtsbackup", "run"}
 				if len(configFile) != 0 {
@@ -100,6 +101,7 @@ func main() {
 					WorkDir:     "./",
 					Args:        args,
 				}
+
 				d, err := dm.Reborn()
 				if err != nil {
 					log.Fatal("Unable to run: ", err)
@@ -125,7 +127,7 @@ func main() {
 				logger.SetLogger(config.LogFilePath)
 				scheduler.Start()
 
-				web.StartHTTP(version)
+// 				web.StartHTTP(version)
 
 				return nil
 			},
@@ -137,7 +139,6 @@ func main() {
 
 func initApplication() {
 	config.Init(configFile)
-
 }
 
 func perform(modelNames []string) {
