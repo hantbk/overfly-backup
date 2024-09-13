@@ -20,7 +20,6 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stoicperlman/fls v0.0.0-20171222144224-f073b7a01081
 	github.com/stretchr/testify v1.9.0
-	github.com/studio-b12/gowebdav v0.9.0
 	github.com/urfave/cli/v2 v2.27.4
 	golang.org/x/crypto v0.27.0
 )

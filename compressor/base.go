@@ -73,7 +73,7 @@ func Run(model config.ModelConfig) (string, error) {
 		ext = ".tar"
 		model.CompressWith.Type = "tar"
 	default:
-		return "", fmt.Errorf("Unsupported compress type: %s", model.CompressWith.Type)
+		return "", fmt.Errorf("unsupported compress type: %s", model.CompressWith.Type)
 	}
 
 	// save Extension
@@ -83,7 +83,7 @@ func Run(model config.ModelConfig) (string, error) {
 	base.parallelProgram = parallelProgram
 	c = &Tar{Base: base}
 
-	logger.Info("=> Compress | " + model.CompressWith.Type)
+	logger.Info("=> Compress: " + model.CompressWith.Type)
 
 	if err := helper.MkdirP(model.DumpPath); err != nil {
 		logger.Errorf("Failed to mkdir dump path %s: %v", model.DumpPath, err)

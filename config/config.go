@@ -11,7 +11,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/hantbk/vtsbackup/helper"
 	"github.com/hantbk/vtsbackup/logger"
-
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
@@ -73,7 +72,7 @@ func (sc ScheduleConfig) String() string {
 type ModelConfig struct {
 	Name        string
 	Description string
-	// WorkDir of the backup started
+	// WorkDir of the gobackup started
 	WorkDir        string
 	TempPath       string
 	DumpPath       string
@@ -91,7 +90,7 @@ type ModelConfig struct {
 }
 
 func getBackupDir() string {
-	dir := os.Getenv("VTSBACKUP_DIR")
+	dir := os.Getenv("BACKUP_DIR")
 	if len(dir) == 0 {
 		dir = filepath.Join(os.Getenv("HOME"), ".vtsbackup")
 	}
@@ -108,7 +107,7 @@ type SubConfig struct {
 // Init
 // loadConfig from:
 // - ./vtsbackup.yml
-// - ~/.vtsbackup/gobackup.yml
+// - ~/.vtsbackup/vtsbackup.yml
 // - /etc/vtsbackup/vtsbackup.yml
 func Init(configFile string) error {
 	logger := logger.Tag("Config")
@@ -198,7 +197,7 @@ func loadConfig() error {
 	viper.Set("useTempWorkDir", false)
 	if workdir := viper.GetString("workdir"); len(workdir) == 0 {
 		// use temp dir as workdir
-		dir, err := os.MkdirTemp("", "vtsbackup")
+		dir, err := os.MkdirTemp("", "backup")
 		if err != nil {
 			return err
 		}
@@ -274,8 +273,6 @@ func loadModel(key string) (ModelConfig, error) {
 		return ModelConfig{}, fmt.Errorf("no storage found in model %s", model.Name)
 	}
 
-	loadNotifiersConfig(&model)
-
 	return model, nil
 }
 
@@ -315,19 +312,6 @@ func loadStoragesConfig(model *ModelConfig) {
 	}
 	model.Storages = storageConfigs
 
-}
-
-func loadNotifiersConfig(model *ModelConfig) {
-	subViper := model.Viper.Sub("notifiers")
-	model.Notifiers = map[string]SubConfig{}
-	for key := range model.Viper.GetStringMap("notifiers") {
-		dbViper := subViper.Sub(key)
-		model.Notifiers[key] = SubConfig{
-			Name:  key,
-			Type:  dbViper.GetString("type"),
-			Viper: dbViper,
-		}
-	}
 }
 
 // GetModelConfigByName get model config by name
