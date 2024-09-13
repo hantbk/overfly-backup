@@ -1,0 +1,16 @@
+models:
+  test:
+    archive:
+      includes:
+        - /Users/hant/Documents/
+    storages:
+      scp:
+        type: scp
+        keep: 10
+        path: ~/backup
+        host: 192.168.103.129
+        port: 22
+        username: hant
+        private_key: ~/.ssh/id_rsa
+        password: 1
+        timeout: 300

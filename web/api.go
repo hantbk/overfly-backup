@@ -16,11 +16,10 @@ import (
 	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/model"
 	"github.com/hantbk/vtsbackup/storage"
-
 	"github.com/stoicperlman/fls"
 )
 
-// go:embed dist
+//go:embed dist
 var staticFS embed.FS
 var logFile *os.File
 
@@ -95,7 +94,7 @@ func setupRouter(version string) *gin.Engine {
 
 	r.GET("/status", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"message": "VtsBackup is running.",
+			"message": "Backup is running.",
 			"version": version,
 		})
 	})
@@ -108,23 +107,6 @@ func setupRouter(version string) *gin.Engine {
 			return
 		}
 
-		c.AbortWithStatusJSON(c.Writer.Status(), gin.H{
-			"message": c.Errors.String(),
-		})
-
-	})
-
-	r.Use(func(c *gin.Context) {
-		c.Next()
-
-		// Skip if no errors
-		if len(c.Errors) == 0 {
-			return
-		}
-
-		for _, err := range c.Errors {
-			logger.Error(err)
-		}
 		c.AbortWithStatusJSON(c.Writer.Status(), gin.H{
 			"message": c.Errors.String(),
 		})
@@ -169,7 +151,7 @@ func perform(c *gin.Context) {
 
 	m := model.GetModelByName(param.Model)
 	if m == nil {
-		c.AbortWithError(404, fmt.Errorf("Model: \"%s\" not found", param.Model))
+		c.AbortWithError(404, fmt.Errorf("model: \"%s\" not found", param.Model))
 		return
 	}
 
@@ -186,7 +168,7 @@ func list(c *gin.Context) {
 	modelName := c.Query("model")
 	m := model.GetModelByName(modelName)
 	if m == nil {
-		c.AbortWithError(404, fmt.Errorf("Model: \"%s\" not found", modelName))
+		c.AbortWithError(404, fmt.Errorf("model: \"%s\" not found", modelName))
 		return
 	}
 
@@ -209,13 +191,13 @@ func download(c *gin.Context) {
 	modelName := c.Query("model")
 	m := model.GetModelByName(modelName)
 	if m == nil {
-		c.AbortWithError(404, fmt.Errorf("Model: \"%s\" not found", modelName))
+		c.AbortWithError(404, fmt.Errorf("model: \"%s\" not found", modelName))
 		return
 	}
 
 	file := c.Query("path")
 	if file == "" {
-		c.AbortWithError(404, fmt.Errorf("File not found"))
+		c.AbortWithError(404, fmt.Errorf("file not found"))
 		return
 	}
 

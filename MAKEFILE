@@ -5,7 +5,7 @@ test\:all:
 build_web:
 	cd web; yarn && yarn build
 perform:
-	@go run main.go -- perform -m demo -c ./vtsbackup_test.yml
+	@go run main.go -- perform -m test -c ./vtsbackup_test.yml
 run:
 	GO_ENV=dev go run main.go -- run --config ./vtsbackup_test.yml
 start:

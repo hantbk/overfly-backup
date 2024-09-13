@@ -53,7 +53,7 @@ func TestAPIStatus(t *testing.T) {
 	code, body := invokeHttp("GET", "/status", nil, nil)
 
 	assert.Equal(t, 200, code)
-	assertMatchJSON(t, gin.H{"message": "VtsBackup is running.", "version": "master"}, body)
+	assertMatchJSON(t, gin.H{"message": "Backup is running.", "version": "master"}, body)
 }
 
 func TestAPIGetModels(t *testing.T) {

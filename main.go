@@ -68,7 +68,8 @@ func main() {
 
 	app.Commands = []*cli.Command{
 		{
-			Name: "perform",
+			Name:  "perform",
+			Usage: "Perform backup using config file",
 			Flags: buildFlags([]cli.Flag{
 				&cli.StringSliceFlag{
 					Name:    "model",
@@ -83,16 +84,15 @@ func main() {
 					return err
 				}
 				modelNames = append(ctx.StringSlice("model"), ctx.Args().Slice()...)
-
 				return perform(modelNames)
 			},
 		},
 		{
 			Name:  "start",
-			Usage: "Start as daemon",
+			Usage: "Start Backup agent as daemon",
 			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
-				fmt.Println("VtsBackup starting...")
+				fmt.Println("Backup starting as daemon...")
 
 				args := []string{"vtsbackup", "run"}
 				if len(configFile) != 0 {
@@ -100,7 +100,6 @@ func main() {
 				}
 
 				dm := &daemon.Context{
-					// LogFileName: config.LogFilePath,
 					PidFileName: config.PidFilePath,
 					PidFilePerm: 0644,
 					WorkDir:     "./",
@@ -114,7 +113,7 @@ func main() {
 				if d != nil {
 					return nil
 				}
-				defer dm.Release() //nolint: errcheck
+				defer dm.Release() //nolint:errcheck
 
 				logger.SetLogger(config.LogFilePath)
 
@@ -124,7 +123,7 @@ func main() {
 				}
 
 				if err := scheduler.Start(); err != nil {
-					return fmt.Errorf("scheduler start failed: %w", err)
+					return fmt.Errorf("failed to start scheduler: %w", err)
 				}
 
 				return nil
@@ -132,10 +131,9 @@ func main() {
 		},
 		{
 			Name:  "run",
-			Usage: "Run VtsBackup",
+			Usage: "Run Backup agent without daemon",
 			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
-
 				logger.SetLogger(config.LogFilePath)
 
 				err := initApplication()
@@ -144,7 +142,7 @@ func main() {
 				}
 
 				if err := scheduler.Start(); err != nil {
-					return fmt.Errorf("scheduler start failed: %w", err)
+					return fmt.Errorf("failed to start scheduler: %w", err)
 				}
 
 				return web.StartHTTP(version)
@@ -181,5 +179,6 @@ func perform(modelNames []string) error {
 			logger.Tag(fmt.Sprintf("Model %s", m.Config.Name)).Error(err)
 		}
 	}
+
 	return nil
 }

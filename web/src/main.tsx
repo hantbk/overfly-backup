@@ -40,19 +40,6 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
             <div className="p-4">
               <RouterProvider router={router} />
             </div>
-            <div className="footer">
-              <div className="copyright flex items-center space-x-1">
-                <div>
-                  <a
-                    className="hover:text-blue"
-                    target="_blank"
-                  >
-                    Backup Service
-                  </a>
-                  <span> @ 2024</span>
-                </div>
-              </div>
-            </div>
           </div>
         </React.StrictMode>
       </StyleProvider>

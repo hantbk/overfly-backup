@@ -13,7 +13,7 @@ get_latest_release() {
 }
 
 repo="hantbk/vtsbackup"
-version="$(get_latest_release "${repo}")"  # v1.2.0
+version="$(get_latest_release "${repo}")" 
 
 # if args has version override it and not eq "latest"
 if test $# -eq 1; then

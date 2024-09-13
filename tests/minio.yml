@@ -2,7 +2,7 @@ models:
   test:
     archive:
       includes:
-        - /Users/hant/Downloads
+        - /Users/hant/Documents/
     storages:
       minio:
         type: minio

@@ -2,10 +2,11 @@ models:
   aws:
     archive:
       includes:
-        - /etc/hosts
+        - /Users/hant/Documents/
     storages:
       s3:
         type: s3
+        keep: 10
         bucket: vts-backup-test
         region: us-east-1
         path: backups

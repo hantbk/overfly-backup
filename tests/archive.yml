@@ -1,12 +1,12 @@
 models:
-   test:
-     compress_with:
-       type: tgz
-     storages:
-       local:
-         type: local
-         keep: 10
-         path: /Users/hant/Downloads
-     archive:
-       includes:
-         - tests/fixtures/files/
+  test:
+    compress_with:
+      type: tgz
+    storages:
+      local:
+        type: local
+        keep: 10
+        path: tests/backups/
+    archive:
+      includes:
+        - tests/fixtures/files/
