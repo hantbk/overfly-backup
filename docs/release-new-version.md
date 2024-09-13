@@ -3,7 +3,7 @@
  Just create a new tag and push, the GitHub Actions will to the rest.
 
  ```bash
- git tag -v v*.*.*
+ git tag v*.*.*
  git push origin v*.*.*
  ```
 
