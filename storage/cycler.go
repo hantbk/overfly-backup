@@ -14,6 +14,7 @@ import (
 
 type PackageList []Package
 
+// When `FileKeys` is not empty, `FileKey` is the directory
 type Package struct {
 	FileKey   string    `json:"file_key"`
 	FileKeys  []string  `json:"file_keys,omitempty"`
@@ -115,7 +116,7 @@ func (c *Cycler) save(cyclerFileName string) {
 	logger := logger.Tag("Cycler")
 
 	if !c.isLoaded {
-		logger.Warn("Skip save cycler.json because it not loaded")
+		logger.Warn("Skip save cycler.json because it is not loaded")
 		return
 	}
 

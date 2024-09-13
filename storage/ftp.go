@@ -93,7 +93,7 @@ func (s *FTP) open() error {
 
 func (s *FTP) close() {
 	if err := s.client.Quit(); err != nil {
-		logger.Errorf("FTP close failed: %v", err.Error())
+		logger.Errorf("FTP close error: %v", err.Error())
 	}
 }
 
@@ -124,8 +124,10 @@ func (s *FTP) upload(fileKey string) error {
 		// directory
 		// 2022.12.04.07.09.47/2022.12.04.07.09.47.tar.xz-000
 		fileKeys = s.fileKeys
+
 		remotePath := filepath.Join(s.path, fileKey)
 		remoteDir := filepath.Dir(remotePath)
+
 		// mkdir
 		if err := s.mkdir(remoteDir); err != nil {
 			return err
@@ -195,5 +197,5 @@ func (s *FTP) list(parent string) ([]FileItem, error) {
 
 // Get FTP download URL
 func (s *FTP) download(fileKey string) (string, error) {
-	return "", fmt.Errorf("FTP download is not supported")
+	return "", fmt.Errorf("FTP download is not implemented")
 }

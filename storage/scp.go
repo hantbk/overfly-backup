@@ -10,11 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hantbk/vtsbackup/helper"
-	"github.com/hantbk/vtsbackup/logger"
-
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/bramvdbogaerde/go-scp/auth"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/hantbk/vtsbackup/logger"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -138,7 +137,7 @@ func (s *SCP) upload(fileKey string) error {
 			return err
 		}
 
-		// upload
+		// upload file
 		if err := s.up(sourcePath, remotePath); err != nil {
 			return err
 		}

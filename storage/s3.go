@@ -8,20 +8,19 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hantbk/vtsbackup/helper"
-	"github.com/hantbk/vtsbackup/logger"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/hantbk/vtsbackup/logger"
 )
 
 // S3 - Amazon S3 storage
 //
 // type: s3
-// bucket: backup-test
+// bucket: vtsbackup-test
 // region: us-east-1
 // path: backups
 // access_key_id: your-access-key-id
@@ -41,13 +40,13 @@ type S3 struct {
 }
 
 func (s S3) providerName() string {
-
 	switch s.Service {
 	case "s3":
 		return "AWS S3"
 	case "minio":
 		return "MinIO"
 	}
+
 	return "AWS S3"
 }
 
@@ -58,11 +57,11 @@ func (s S3) defaultRegion() string {
 	case "minio":
 		return "us-east-1"
 	}
+
 	return "us-east-1"
 }
 
 func (s S3) defaultEndpoint() *string {
-
 	return aws.String("")
 }
 
@@ -78,12 +77,7 @@ func (s *S3) defaultStorageClass() string {
 }
 
 func (s *S3) forcePathStyle() bool {
-	switch s.Service {
-	case "tos", "oss":
-		return false
-	default:
-		return true
-	}
+	return true
 }
 
 func (s *S3) init() {
@@ -101,6 +95,8 @@ func (s *S3) init() {
 func (s *S3) open() (err error) {
 	s.init()
 
+	logger := logger.Tag(s.providerName())
+
 	cfg := aws.NewConfig()
 	endpoint := s.viper.GetString("endpoint")
 
@@ -117,6 +113,10 @@ func (s *S3) open() (err error) {
 	secretAccessKey := s.viper.GetString("secret_access_key")
 	if len(secretAccessKey) == 0 {
 		secretAccessKey = s.viper.GetString("access_key_secret")
+	}
+
+	if len(accessKeyId) == 0 || len(secretAccessKey) == 0 {
+		logger.Warn("`access_key_id` or `secret_access_key` is empty.")
 	}
 
 	cfg.Credentials = credentials.NewStaticCredentials(

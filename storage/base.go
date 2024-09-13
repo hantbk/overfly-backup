@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/logger"
 	"github.com/spf13/viper"
 )
 
@@ -101,7 +101,7 @@ func new(model config.ModelConfig, archivePath string, storageConfig config.SubC
 	case "minio":
 		s = &S3{Base: base, Service: "minio"}
 	default:
-		logger.Errorf("[%s] storage type has not implement", storageConfig.Type)
+		logger.Errorf("[%s] storage type has not implement.", storageConfig.Type)
 	}
 
 	return base, s
@@ -114,7 +114,7 @@ func runModel(model config.ModelConfig, archivePath string, storageConfig config
 	newFileKey := filepath.Base(archivePath)
 	base, s := new(model, archivePath, storageConfig)
 
-	logger.Info("=> Storage | " + storageConfig.Type)
+	logger.Info("=> Storage: " + storageConfig.Type)
 	err = s.open()
 	if err != nil {
 		return err

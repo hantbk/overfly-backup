@@ -25,8 +25,8 @@ func Test_S3_open(t *testing.T) {
 		"foo/bar",
 		// Creating a new base object.
 		config.SubConfig{
-			Type:  "mongodb",
-			Name:  "mongodb1",
+			Type:  "s3",
+			Name:  "test",
 			Viper: viper,
 		},
 	)
@@ -50,8 +50,8 @@ func Test_S3_open(t *testing.T) {
 
 func Test_providerName(t *testing.T) {
 	var cases = map[string]serviceInfo{
-		"s3":    {"AWS S3", "", "us-east-1", "STANDARD_IA", true},
-		"minio": {"MinIO", "", "us-east-1", "", true},
+		"s3":     {"AWS S3", "", "us-east-1", "STANDARD_IA", true},
+		"minio":  {"MinIO", "", "us-east-1", "", true},
 	}
 
 	base, _ := newBase(config.ModelConfig{}, "test", config.SubConfig{})

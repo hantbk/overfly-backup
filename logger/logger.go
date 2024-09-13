@@ -36,8 +36,9 @@ func (w writer) Write(b []byte) (n int, err error) {
 func init() {
 	if isTest {
 		if err := os.MkdirAll("../log", 0777); err != nil {
-			log.Printf("Failed to create log directory: %v", err)
+			log.Printf("create log dir failed: %v\n", err)
 		}
+
 		logfile, _ := os.OpenFile("../log/test.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		_myLog = log.New(logfile, "", _logFlag)
 	}
