@@ -12,7 +12,8 @@ import (
 
 // Run archive
 func Run(model config.ModelConfig) error {
-	logger := logger.Tag("archive")
+	logger := logger.Tag("Archive")
+
 	if model.Archive == nil {
 		return nil
 	}
@@ -36,17 +37,14 @@ func Run(model config.ModelConfig) error {
 	opts := options(model.DumpPath, excludes, includes)
 
 	_, err := helper.Exec("tar", opts...)
-
 	return err
 }
 
 func options(dumpPath string, excludes, includes []string) (opts []string) {
 	tarPath := path.Join(dumpPath, "archive.tar")
-
 	if helper.IsGnuTar {
 		opts = append(opts, "--ignore-failed-read")
 	}
-
 	opts = append(opts, "-cPf", tarPath)
 
 	for _, exclude := range excludes {

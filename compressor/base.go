@@ -73,7 +73,7 @@ func Run(model config.ModelConfig) (string, error) {
 		ext = ".tar"
 		model.CompressWith.Type = "tar"
 	default:
-		return "", fmt.Errorf("Unknown compress type: %s", model.CompressWith.Type)
+		return "", fmt.Errorf("Unsupported compress type: %s", model.CompressWith.Type)
 	}
 
 	// save Extension
