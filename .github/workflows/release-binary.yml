@@ -55,8 +55,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            huacnlee/gobackup:latest
-            huacnlee/gobackup:${{ steps.tagName.outputs.tag }}
+            nthhaf/vtsbackup:latest
+            nthhaf/vtsbackup:${{ steps.tagName.outputs.tag }}
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
