@@ -129,11 +129,7 @@ func (s *S3) open() (err error) {
 
 	s.bucket = s.viper.GetString("bucket")
 	s.path = s.viper.GetString("path")
-
-	// Only present storage_class when it is set.
-	if len(s.viper.GetString("storage_class")) > 0 {
-		s.storageClass = s.viper.GetString("storage_class")
-	}
+	s.storageClass = s.viper.GetString("storage_class")
 
 	timeout := s.viper.GetInt("timeout")
 	uploadTimeoutDuration := time.Duration(timeout) * time.Second
@@ -178,10 +174,15 @@ func (s *S3) upload(fileKey string) (err error) {
 		progress := helper.NewProgressBar(logger, f)
 
 		input := &s3manager.UploadInput{
-			Bucket:       aws.String(s.bucket),
-			Key:          aws.String(remotePath),
-			Body:         progress.Reader,
-			StorageClass: aws.String(s.storageClass),
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(remotePath),
+			Body:   progress.Reader,
+		}
+
+		// Only present storage_class when it is set.
+		// Some storage backend may not support storage_class.
+		if len(s.storageClass) > 0 {
+			input.StorageClass = aws.String(s.storageClass)
 		}
 
 		result, err := s.client.Upload(input, func(uploader *s3manager.Uploader) {
@@ -233,9 +234,14 @@ func (s *S3) list(parent string) ([]FileItem, error) {
 
 	for {
 		input := &s3.ListObjectsV2Input{
-			Bucket:            aws.String(s.bucket),
-			Prefix:            aws.String(remotePath),
-			ContinuationToken: aws.String(continueToken),
+			Bucket: aws.String(s.bucket),
+			Prefix: aws.String(remotePath),
+		}
+
+		// Only present ContinuationToken when it is set.
+		// Some S3 compatible storage like MinIO will raise error when ContinuationToken is empty.
+		if len(continueToken) > 0 {
+			input.ContinuationToken = aws.String(continueToken)
 		}
 
 		result, err := s.client.S3.ListObjectsV2(input)

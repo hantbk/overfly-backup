@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GO_ENV: test
-      GOPATH: ${{ github.workspace }}/go
     steps:
       - name: Skip Duplicate Actions
         uses: fkirc/skip-duplicate-actions@v5.3.0
@@ -20,22 +19,15 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v1
         with:
           go-version: 1.20
         id: go
-        
       - name: "Build Web"
         run: |
           cd web
           yarn && yarn build
-
       - name: Get dependencies
         run: go get -v -t -d ./...
-        shell: /usr/bin/bash -e {0}
-        env:
-          GO_ENV: test
-          GOPATH: ${{ github.workspace }}/go
-          
       - name: Test
         run: go test ./...
