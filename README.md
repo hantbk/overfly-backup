@@ -1,7 +1,6 @@
 # VTS Backup Service with Management Agent
 
 ## Features
-- No dependencies.
 - Multiple Storage type support.
 - Archive paths or files into a tar.
 - Split large backup file into multiple parts.
@@ -15,7 +14,6 @@
 - SFTP
 - SCP - Upload via SSH copy 
 - S3 - Amazon S3
-- WebDAV - For Synology NAS 
 - MinIO - S3 compatible object storage server
 
 ### Compressor
@@ -37,26 +35,14 @@
 
 - OpenSSL - `aes-256-cbc` encrypt
 
-### Notifier
-Send notification when backup has success or failed.
-- Github 
-- Mail - Send email via SMTP
-- Postmark - Send email via Postmark API
-
-### Usage
-```bash
-go build
-./vtsbackup perform
-```
-
 ### Install (macOS / Linux)
 ```shell
-curl -sSL https://raw.githubusercontent.com/hantbk/vts-backup/master/install | sh
+curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh
 ```
 
 ## Start 
 ```shell
-go run main.go -h
+vtsbackup -h
 ```
 
 ```
@@ -67,12 +53,12 @@ USAGE:
    vtsbackup [global options] command [command options]
 
 VERSION:
-   master
+   0.0.6
 
 COMMANDS:
-   perform  
-   start    Start as daemon
-   run      Run VtsBackup
+   perform  Perform backup using config file
+   start    Start Backup agent as daemon
+   run      Run Backup agent without daemon
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -92,28 +78,79 @@ You can configure the `schedule` for each models, it will run backup task at the
 Configure your schedule in `vtsbackup.yml`
 
  ```yml
- models:
-   my_backup:
-     before_script: |
-       echo "Before script"
-     after_script: |
-       echo "After script"
-     schedule:
-       # At 04:05 on Sunday.
-       cron: "5 4 * * sun"
-     storages:
-       local:
-         type: local
-         path: /path/to/backups
-   other_backup:
-     # At 04:05 on every day.
-     schedule:
-       every: "1day",
-       at: "04:05"
-     storages:
-       local:
-         type: local
-         path: /path/to/backups
+models:
+  test-local:
+    description: "test backup with local storage"
+    schedule:
+      cron: "0 0 * * *" # every day at midnight
+    archive:
+      includes:
+        - /Users/hant/Documents
+      excludes:
+        - /Users/hant/Documents/backup.txt
+    compress_with:
+      type: tgz
+    storages:
+      local:
+        type: local
+        keep: 10
+        path: /Users/hant/Downloads/backup1
+  test-minio:
+    description: "test backup with minio storage"
+    schedule:
+      every: "1day"
+      at: "00:00"
+    archive:
+      includes:
+        - /Users/hant/Documents
+    compress_with:
+      type: tgz
+    encrypt_with:
+      type: openssl
+      password: 123
+      salt: false
+      openssl: true
+    storages:
+      minio:
+        type: minio
+        bucket: vtsbackup-test
+        endpoint: http://127.0.0.1:9000
+        path: backups
+        access_key_id:
+        secret_access_key:
+  test-s3:
+    description: "test backup with s3 storage"
+    schedule:
+      every: "180s"
+    archive:
+      includes:
+        - /Users/hant/Documents
+    compress_with:
+      type: tgz
+    storages:
+      s3:
+        type: s3
+        bucket: vts-backup-test
+        regions: us-east-1
+        path: backups
+        access_key_id:
+        secret_access_key:
+  test-scp:
+    description: "test backup with scp storage"
+    archive:
+      includes:
+        - /Users/hant/Documents
+    compress_with:
+      type: tgz
+    storages:
+      scp:
+        type: scp
+        host: 192.168.103.129
+        port: 22
+        path: ~/backups
+        username: hant
+        private_key: ~/.ssh/id_rsa
+
  ```
 
 And then start daemon:
@@ -141,9 +178,13 @@ VtsBackup will handle the following signals:
 
  ```bash
  $ ps aux | grep vtsbackup
- hant            20443   0.0  0.1 409232800   8912   ??  Ss    7:47PM   0:00.02 vtsbackup run
+hant             48966   0.3  0.2 411599488  30880   ??  Ss    1:52AM   0:01.41 vtsbackup run
+hant             49182   0.0  0.0 410200752   1184 s023  S+    1:56AM   0:00.00 grep --color=auto --exclude-dir=.bzr --exclude-dir=CVS --exclude-dir=.git --exclude-dir=.hg --exclude-dir=.svn --exclude-dir=.idea --exclude-dir=.tox vtsbackup
+```
+
+```bash
  # Reload configuration
- $ kill -HUP 20443
+ $ kill -HUP 48966
  # Exit daemon
- $ kill -QUIT 20443
+ $ kill -QUIT 48966
  ```
