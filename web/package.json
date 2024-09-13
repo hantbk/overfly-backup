@@ -27,7 +27,8 @@
     "vite": "^4.5.2"
   },
   "dependencies": {
-    "react-lazylog": "^4.5.3"
+    "react-lazylog": "^4.5.3",
+    "react-virtualized": "git+https://git@github.com/remorses/react-virtualized-fixed-import.git#9.22.3"
   },
   "resolutions": {
     "react-virtualized": "git+https://git@github.com/remorses/react-virtualized-fixed-import.git#9.22.3"
