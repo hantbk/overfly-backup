@@ -1,10 +1,11 @@
 package encryptor
 
 import (
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestOpenSSL_options(t *testing.T) {
@@ -25,15 +26,15 @@ func TestOpenSSL_options(t *testing.T) {
 	base.viper.Set("base64", true)
 	base.viper.Set("salt", false)
 	base.viper.Set("args", "-pbkdf2 -iter 1000")
-	base.viper.Set("password", "vtsbackup-123")
+	base.viper.Set("password", "backup-123")
 	base.viper.Set("chiper", "rc4")
 
 	enc = NewOpenSSL(base)
 	assert.Equal(t, true, enc.base64)
 	assert.Equal(t, false, enc.salt)
 	assert.Equal(t, "rc4", enc.chiper)
-	assert.Equal(t, "vtsbackup-123", enc.password)
+	assert.Equal(t, "backup-123", enc.password)
 	assert.Equal(t, "-pbkdf2 -iter 1000", enc.args)
 
-	assert.Equal(t, "rc4 -base64 -pbkdf2 -iter 1000 -k vtsbackup-123", strings.Join(enc.options(), " "))
+	assert.Equal(t, "rc4 -base64 -pbkdf2 -iter 1000 -k backup-123", strings.Join(enc.options(), " "))
 }

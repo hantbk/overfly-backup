@@ -2,7 +2,6 @@ package encryptor
 
 import (
 	"fmt"
-
 	"strings"
 
 	"github.com/hantbk/vtsbackup/helper"

@@ -41,7 +41,7 @@ func Run(archivePath string, model config.ModelConfig) (encryptPath string, err 
 		return
 	}
 
-	logger.Info("encrypt | " + model.EncryptWith.Type)
+	logger.Info("encrypt: " + model.EncryptWith.Type)
 	encryptPath, err = enc.perform()
 	if err != nil {
 		return
