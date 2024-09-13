@@ -31,6 +31,7 @@ func ExecWithStdio(command string, stdout bool, args ...string) (output string, 
 	if len(args) > 0 {
 		commandArgs = append(commandArgs, args...)
 	}
+
 	fullCommand, err := exec.LookPath(command)
 	if err != nil {
 		return "", fmt.Errorf("%s cannot be found", command)
@@ -38,6 +39,7 @@ func ExecWithStdio(command string, stdout bool, args ...string) (output string, 
 
 	cmd := exec.Command(fullCommand, commandArgs...)
 	cmd.Env = os.Environ()
+
 	var stdErr bytes.Buffer
 	var stdOut bytes.Buffer
 	cmd.Stderr = &stdErr
@@ -53,7 +55,7 @@ func ExecWithStdio(command string, stdout bool, args ...string) (output string, 
 		logger.Debug(fullCommand, " ", strings.Join(commandArgs, " "))
 		err = errors.New(stdErr.String())
 	}
-
 	output = strings.Trim(stdOut.String(), "\n")
+
 	return
 }
