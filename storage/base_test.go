@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vtsbackup/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

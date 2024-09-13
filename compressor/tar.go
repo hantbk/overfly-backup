@@ -1,8 +1,9 @@
 package compressor
 
 import (
-	"github.com/hantbk/vts-backup/helper"
 	"os/exec"
+
+	"github.com/hantbk/vtsbackup/helper"
 )
 
 type Tar struct {

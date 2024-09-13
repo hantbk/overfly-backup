@@ -6,12 +6,11 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/logger"
-	"github.com/hantbk/vts-backup/model"
-	"github.com/hantbk/vts-backup/scheduler"
-	"github.com/hantbk/vts-backup/web"
-
+	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/logger"
+	"github.com/hantbk/vtsbackup/model"
+	"github.com/hantbk/vtsbackup/scheduler"
+	"github.com/hantbk/vtsbackup/web"
 	"github.com/sevlyar/go-daemon"
 	"github.com/spf13/viper"
 	"github.com/urfave/cli/v2"

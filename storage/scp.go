@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/hantbk/vtsbackup/logger"
 
 	"github.com/bramvdbogaerde/go-scp"
 	"github.com/bramvdbogaerde/go-scp/auth"

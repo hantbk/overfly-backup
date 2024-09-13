@@ -2,8 +2,10 @@ package encryptor
 
 import (
 	"fmt"
-	"github.com/hantbk/vts-backup/helper"
+
 	"strings"
+
+	"github.com/hantbk/vtsbackup/helper"
 )
 
 // OpenSSL encryptor for use openssl aes-256-cbc

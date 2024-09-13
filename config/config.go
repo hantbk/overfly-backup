@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/hantbk/vtsbackup/logger"
+
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )

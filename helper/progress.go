@@ -9,7 +9,7 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/dustin/go-humanize"
 	"github.com/hako/durafmt"
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/logger"
 )
 
 const (

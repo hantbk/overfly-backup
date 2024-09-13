@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/hantbk/vtsbackup/logger"
 	"github.com/spf13/viper"
 )
 

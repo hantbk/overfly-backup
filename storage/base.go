@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/logger"
+	"github.com/hantbk/vtsbackup/config"
 	"github.com/spf13/viper"
 )
 

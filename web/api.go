@@ -12,10 +12,10 @@ import (
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/logger"
-	"github.com/hantbk/vts-backup/model"
-	"github.com/hantbk/vts-backup/storage"
+	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/logger"
+	"github.com/hantbk/vtsbackup/model"
+	"github.com/hantbk/vtsbackup/storage"
 
 	"github.com/stoicperlman/fls"
 )

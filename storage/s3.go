@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/hantbk/vtsbackup/logger"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -29,7 +29,7 @@ import (
 // max_retries: 5
 // storage_class:
 // timeout: 300
-// force_path_style: 
+// force_path_style:
 type S3 struct {
 	Base
 	Service      string

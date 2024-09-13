@@ -1,11 +1,12 @@
 package archive
 
 import (
-	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRun(t *testing.T) {

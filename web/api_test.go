@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vtsbackup/config"
 	"github.com/stretchr/testify/assert"
 )
 

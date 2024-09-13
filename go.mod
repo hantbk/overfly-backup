@@ -1,4 +1,4 @@
-module github.com/hantbk/vts-backup
+module github.com/hantbk/vtsbackup
 
 go 1.23.0
 

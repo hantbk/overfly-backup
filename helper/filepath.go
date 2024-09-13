@@ -5,7 +5,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/logger"
 )
 
 // IsExistsPath check if path exists

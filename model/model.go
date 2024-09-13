@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hantbk/vts-backup/archive"
-	"github.com/hantbk/vts-backup/compressor"
-	"github.com/hantbk/vts-backup/config"
-	"github.com/hantbk/vts-backup/encryptor"
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/hantbk/vts-backup/logger"
-	"github.com/hantbk/vts-backup/splitter"
-	"github.com/hantbk/vts-backup/storage"
+	"github.com/hantbk/vtsbackup/archive"
+	"github.com/hantbk/vtsbackup/compressor"
+	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/encryptor"
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/hantbk/vtsbackup/logger"
+	"github.com/hantbk/vtsbackup/splitter"
+	"github.com/hantbk/vtsbackup/storage"
 	"github.com/spf13/viper"
 )
 

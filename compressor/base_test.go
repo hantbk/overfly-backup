@@ -1,12 +1,13 @@
 package compressor
 
 import (
-	"github.com/hantbk/vts-backup/config"
-	"github.com/stretchr/testify/assert"
 	"path"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hantbk/vtsbackup/config"
+	"github.com/stretchr/testify/assert"
 )
 
 type Monkey struct {

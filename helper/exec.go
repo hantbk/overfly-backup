@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hantbk/vts-backup/logger"
+	"github.com/hantbk/vtsbackup/logger"
 )
 
 var (

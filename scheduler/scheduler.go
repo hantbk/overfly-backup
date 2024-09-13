@@ -7,9 +7,9 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-co-op/gocron"
-	"github.com/hantbk/vts-backup/config"
-	superlogger "github.com/hantbk/vts-backup/logger"
-	"github.com/hantbk/vts-backup/model"
+	"github.com/hantbk/vtsbackup/config"
+	superlogger "github.com/hantbk/vtsbackup/logger"
+	"github.com/hantbk/vtsbackup/model"
 )
 
 var (

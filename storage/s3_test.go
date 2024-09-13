@@ -3,7 +3,7 @@ package storage
 import (
 	"testing"
 
-	"github.com/hantbk/vts-backup/config"
+	"github.com/hantbk/vtsbackup/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )

@@ -1,9 +1,10 @@
 package compressor
 
 import (
-	"github.com/hantbk/vts-backup/helper"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/hantbk/vtsbackup/helper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTar_options(t *testing.T) {
