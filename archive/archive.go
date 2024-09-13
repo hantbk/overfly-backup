@@ -2,23 +2,24 @@ package archive
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
+
 	"github.com/hantbk/vts-backup/config"
 	"github.com/hantbk/vts-backup/helper"
 	"github.com/hantbk/vts-backup/logger"
-	"path"
-	"path/filepath"
 )
 
 // Run archive
-func Run(model config.ModelConfig) (err error) {
+func Run(model config.ModelConfig) error {
 	logger := logger.Tag("archive")
 	if model.Archive == nil {
 		return nil
 	}
 
-	if err = helper.MkdirP(model.DumpPath); err != nil {
+	if err := helper.MkdirP(model.DumpPath); err != nil {
 		logger.Errorf("Failed to mkdir dump path %s: %v", model.DumpPath, err)
-		return
+		return err
 	}
 
 	includes := model.Archive.GetStringSlice("includes")
@@ -33,9 +34,10 @@ func Run(model config.ModelConfig) (err error) {
 	logger.Info("=> includes", len(includes), "rules")
 
 	opts := options(model.DumpPath, excludes, includes)
-	helper.Exec("tar", opts...)
 
-	return nil
+	_, err := helper.Exec("tar", opts...)
+
+	return err
 }
 
 func options(dumpPath string, excludes, includes []string) (opts []string) {

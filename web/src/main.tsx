@@ -7,7 +7,6 @@ import App from './App';
 import FileList from './FileList';
 
 import 'remixicon/fonts/remixicon.css';
-import Icon from './icon';
 import './style.scss';
 
 const router = createBrowserRouter([
