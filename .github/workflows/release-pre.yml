@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.23
       - name: "Build Web"
         run: |
           cd web
@@ -52,6 +52,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
+          platforms: linux/amd64,linux/arm64
           build-args: VERSION=${{ steps.tagName.outputs.tag }}
           tags: |
             nthhaf/vtsbackup:${{ steps.tagName.outputs.tag }}

@@ -29,6 +29,7 @@ import (
 // max_retries: 5
 // storage_class:
 // timeout: 300
+// force_path_style: 
 type S3 struct {
 	Base
 	Service      string
@@ -45,7 +46,7 @@ func (s S3) providerName() string {
 	case "s3":
 		return "AWS S3"
 	case "minio":
-		return "Minio"
+		return "MinIO"
 	}
 	return "AWS S3"
 }
@@ -189,7 +190,7 @@ func (s *S3) upload(fileKey string) (err error) {
 			// set the part size as low as possible to avoid timeouts and aborts
 			// also set concurrency to 1 for the same reason
 			var partSize int64 = 64 * 1024 * 1024 // 64MiB
-			maxParts := math.Ceil(float64(progress.FileLength / partSize))
+			maxParts := progress.FileLength / partSize
 
 			// 10000 parts is the limit for AWS S3. If the resulting number of parts would exceed that limit, increase the
 			// part size as much as needed but as little possible

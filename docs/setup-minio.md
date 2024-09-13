@@ -14,7 +14,7 @@ The Admin user:
 - password: `minioadmin`
 ## Initialize a MinIO bucket
 Now we need to create a bucket for testing, we will use the following credentials:
-- Bucket: `gobackup-test`
+- Bucket: `vtsbackup-test`
 - AccessKeyId: `test-user`
 - SecretAccessKey: `test-user-secret`
 ### Configure MinIO Client
@@ -24,7 +24,7 @@ mc config host add minio http://localhost:9000 minioadmin minioadmin
 ```
 Create a Bucket
 ```bash
-mc mb minio/gobackup-test
+mc mb minio/vtsbackup-test
 ```
 Add Test AccessKeyId and SecretAccessKey.
 With
@@ -38,5 +38,5 @@ With
  ## Start Backup in local for MinIO
 
  ```bash
- GO_ENV=dev go run main.go -- run --config ./tests/minio.yml
+GO_ENV=dev go run main.go -- perform --config ./tests/minio.yml
  ```

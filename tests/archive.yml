@@ -6,7 +6,7 @@ models:
        local:
          type: local
          keep: 10
-         path: tests/backups/
+         path: /Users/hant/Downloads
      archive:
        includes:
          - tests/fixtures/files/

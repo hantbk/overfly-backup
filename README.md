@@ -94,6 +94,10 @@ Configure your schedule in `vtsbackup.yml`
  ```yml
  models:
    my_backup:
+     before_script: |
+       echo "Before script"
+     after_script: |
+       echo "After script"
      schedule:
        # At 04:05 on Sunday.
        cron: "5 4 * * sun"

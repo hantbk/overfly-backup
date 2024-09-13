@@ -9,6 +9,7 @@ RUN apk add \
    gzip \
    pigz \
    bzip2 \
+   coreutils \
    # there is no pbzip2 yet
    lzip \
    xz-dev \
@@ -16,6 +17,8 @@ RUN apk add \
    xz \
    # pixz is in edge atm
    zstd \
+   # support change timezone
+   tzdata \
    && \
    rm -rf /var/cache/apk/*
 

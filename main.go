@@ -84,9 +84,8 @@ func main() {
 					return err
 				}
 				modelNames = append(ctx.StringSlice("model"), ctx.Args().Slice()...)
-				perform(modelNames)
 
-				return nil
+				return perform(modelNames)
 			},
 		},
 		{
@@ -111,13 +110,12 @@ func main() {
 
 				d, err := dm.Reborn()
 				if err != nil {
-					logger.Error(err)
-					logger.Fatalf("Start failed, please check is there another instance running.")
+					return fmt.Errorf("start failed, please check is there another instance running: %w", err)
 				}
 				if d != nil {
 					return nil
 				}
-				defer dm.Release()
+				defer dm.Release() //nolint: errcheck
 
 				logger.SetLogger(config.LogFilePath)
 
@@ -126,7 +124,9 @@ func main() {
 					return err
 				}
 
-				scheduler.Start()
+				if err := scheduler.Start(); err != nil {
+					return fmt.Errorf("scheduler start failed: %w", err)
+				}
 
 				return nil
 			},
@@ -144,28 +144,25 @@ func main() {
 					return err
 				}
 
-				scheduler.Start()
+				if err := scheduler.Start(); err != nil {
+					return fmt.Errorf("scheduler start failed: %w", err)
+				}
 
-				web.StartHTTP(version)
-
-				return nil
+				return web.StartHTTP(version)
 			},
 		},
 	}
 
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		logger.Fatal(err.Error())
+	}
 }
 
 func initApplication() error {
-	err := config.Init(configFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return config.Init(configFile)
 }
 
-func perform(modelNames []string) {
+func perform(modelNames []string) error {
 	var models []*model.Model
 	if len(modelNames) == 0 {
 		// perform all
@@ -173,7 +170,7 @@ func perform(modelNames []string) {
 	} else {
 		for _, name := range modelNames {
 			if m := model.GetModelByName(name); m == nil {
-				logger.Fatalf("Model %s not found in %s", name, viper.ConfigFileUsed())
+				return fmt.Errorf("model %s not found in %s", name, viper.ConfigFileUsed())
 			} else {
 				models = append(models, m)
 			}
@@ -181,6 +178,9 @@ func perform(modelNames []string) {
 	}
 
 	for _, m := range models {
-		m.Perform()
+		if err := m.Perform(); err != nil {
+			logger.Tag(fmt.Sprintf("Model %s", m.Config.Name)).Error(err)
+		}
 	}
+	return nil
 }

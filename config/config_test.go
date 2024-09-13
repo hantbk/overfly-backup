@@ -21,7 +21,9 @@ func init() {
 	if err != nil {
 		return
 	}
-	Init(testConfigFile)
+	if err := Init(testConfigFile); err != nil {
+		panic(err.Error())
+	}
 }
 
 func TestModelsLength(t *testing.T) {
@@ -119,19 +121,20 @@ func TestExpandEnv(t *testing.T) {
 }
 
 func TestWebConfig(t *testing.T) {
-	assert.Equal(t, Web.Host, "127.0.0.1")
+	assert.Equal(t, Web.Host, "0.0.0.0")
 	assert.Equal(t, Web.Port, "2703")
 	assert.Equal(t, Web.Username, "vtsbackup")
 	assert.Equal(t, Web.Password, "123456")
 }
 
 func TestWatchConfigToReload(t *testing.T) {
-	Init(testConfigFile)
+	err := Init(testConfigFile)
+	assert.Nil(t, err)
 	lastUpdatedAt := UpdatedAt.UnixNano()
 	time.Sleep(1 * time.Millisecond)
 
 	// Touch `testConfigFile` to trigger file changes event
-	err := updateFile(testConfigFile)
+	err = updateFile(testConfigFile)
 	assert.Nil(t, err)
 
 	// Wait for reload
