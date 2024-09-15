@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/hantbk/vtsbackup/config"
@@ -69,7 +72,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		{
 			Name:  "perform",
-			Usage: "Perform backup using config file",
+			Usage: "Perform backup pipeline using config file",
 			Flags: buildFlags([]cli.Flag{
 				&cli.StringSliceFlag{
 					Name:    "model",
@@ -110,6 +113,7 @@ func main() {
 				if err != nil {
 					return fmt.Errorf("start failed, please check is there another instance running: %w", err)
 				}
+
 				if d != nil {
 					return nil
 				}
@@ -148,6 +152,72 @@ func main() {
 				return web.StartHTTP(version)
 			},
 		},
+		{
+			Name:  "list",
+			Usage: "List running Backup agents",
+			Action: func(ctx *cli.Context) error {
+				pids, err := listBackupAgents()
+				if err != nil {
+					return err
+				}
+				if len(pids) == 0 {
+					fmt.Println("No running Backup agents found.")
+				} else {
+					fmt.Println("Running Backup agents PIDs:")
+					for _, pid := range pids {
+						fmt.Println(pid)
+					}
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "stop",
+			Usage: "Stop the running Backup agent",
+			Action: func(ctx *cli.Context) error {
+				fmt.Println("Stopping Backup agent...")
+				pids, err := listBackupAgents()
+				if err != nil {
+					return err
+				}
+				if len(pids) == 0 {
+					fmt.Println("No running Backup agents found.")
+				} else {
+					fmt.Println("Running Backup agents PIDs:")
+					for _, pid := range pids {
+						fmt.Println(pid)
+					}
+				}
+				for _, pid := range pids {
+					stopBackupAgent(pid)
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "reload",
+			Usage: "Reload the running Backup agent",
+			Action: func(ctx *cli.Context) error {
+				fmt.Println("Reloading Backup agent...")
+				pids, err := listBackupAgents()
+				if err != nil {
+					return err
+				}
+
+				if len(pids) == 0 {
+					fmt.Println("No running Backup agents found.")
+				} else {
+					fmt.Println("Running Backup agents PIDs:")
+					for _, pid := range pids {
+						fmt.Println(pid)
+					}
+				}
+				for _, pid := range pids {
+					reloadBackupAgent(pid)
+				}
+				return nil
+			},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -181,4 +251,47 @@ func perform(modelNames []string) error {
 	}
 
 	return nil
+}
+
+func listBackupAgents() ([]int, error) {
+	cmd := exec.Command("ps", "aux")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("Error: %v", err)
+	}
+
+	var pids []int
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "vtsbackup") && !strings.Contains(line, "grep") {
+			fields := strings.Fields(line)
+			if len(fields) > 1 {
+				pid, err := strconv.Atoi(fields[1])
+				if err == nil {
+					pids = append(pids, pid)
+				}
+			}
+		}
+	}
+	return pids, nil
+}
+
+func stopBackupAgent(pid int) {
+	cmd := exec.Command("kill", "-QUIT", strconv.Itoa(pid))
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Println("Backup agent stopped successfully")
+	}
+}
+
+func reloadBackupAgent(pid int) {
+	cmd := exec.Command("kill", "-HUP", strconv.Itoa(pid))
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Println("Backup agent reloaded successfully")
+	}
 }

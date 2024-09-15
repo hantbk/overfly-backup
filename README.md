@@ -53,12 +53,15 @@ USAGE:
    vtsbackup [global options] command [command options]
 
 VERSION:
-   0.0.6
+   master
 
 COMMANDS:
-   perform  Perform backup using config file
+   perform  Perform backup pipeline using config file
    start    Start Backup agent as daemon
    run      Run Backup agent without daemon
+   list     List running Backup agents
+   stop     Stop the running Backup agent
+   reload   Reload the running Backup agent
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -171,6 +174,17 @@ And then start daemon:
 
 ## Signal handling
 
+### List running Backup agents
+
+ ```bash
+ $ vtsbackup list
+ ```
+
+ ```
+Running Backup agents PIDs:
+67078
+ ```
+
 VtsBackup will handle the following signals:
 
 - `HUP` - Hot reload configuration.
@@ -187,6 +201,25 @@ hant             49182   0.0  0.0 410200752   1184 s023  S+    1:56AM   0:00.00 
  $ kill -HUP 48966
  # Exit daemon
  $ kill -QUIT 48966
+ ```
+
+ Or you can use `vtsbackup reload` to reload the configuration.
+
+ ```bash
+ $ vtsbackup reload
+ ```
+
+ Or you can use `vtsbackup stop` to stop the running Backup agent.
+
+ ```bash
+ $ vtsbackup stop
+ ```
+
+ ```
+Stopping Backup agent...
+Running Backup agents PIDs:
+67078
+Backup agent stopped successfully
  ```
 
 ## Install the MinIO Server and Client
