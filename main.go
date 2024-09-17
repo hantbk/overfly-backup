@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/helper"
 	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/model"
 	"github.com/hantbk/vtsbackup/scheduler"
@@ -218,6 +219,31 @@ func main() {
 				return nil
 			},
 		},
+		{
+			Name:  "listdisk",
+			Usage: "List all disk on machine.",
+			Action: func(ctx *cli.Context) error {
+				// fmt.Println("All disks:")
+				listDisk()
+				return nil
+			},
+		},
+		{
+			Name:  "createimg",
+			Usage: "Create disk image",
+			Flags: buildFlags([]cli.Flag{
+				&cli.StringFlag{
+					Name:    "disk",
+					Aliases: []string{"d"},
+					Usage:   "Disk name to create image for",
+				},
+			}),
+			Action: func(ctx *cli.Context) error {
+				disk := ctx.String("disk")
+				createDiskImage(disk)
+				return nil
+			},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -257,7 +283,7 @@ func listBackupAgents() ([]int, error) {
 	cmd := exec.Command("ps", "aux")
 	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("Error: %v", err)
+		return nil, fmt.Errorf("error: %v", err)
 	}
 
 	var pids []int
@@ -294,4 +320,109 @@ func reloadBackupAgent(pid int) {
 	} else {
 		fmt.Println("Backup agent reloaded successfully")
 	}
+}
+
+func listDisk() {
+	osinfo, _, err := helper.CheckOS()
+	if err != nil {
+		return
+	}
+	var cmd *exec.Cmd
+	if osinfo == "darwin" {
+		cmd = exec.Command("diskutil", "list")
+	} else if osinfo == "linux" {
+		cmd = exec.Command("lsblk")
+	} else {
+		fmt.Println("Unsupported OS:", osinfo)
+		return
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	fmt.Println(string(output))
+}
+
+func getDisks() ([]string, error) {
+	var cmd *exec.Cmd
+	osinfo, _, err := helper.CheckOS()
+	if err != nil {
+		return nil, err
+	}
+
+	if osinfo == "darwin" {
+		cmd = exec.Command("sh", "-c", "diskutil list | grep '/dev/disk' | awk '{print $1}'")
+	} else if osinfo == "linux" {
+		cmd = exec.Command("sh", "-c", "lsblk -d -o NAME | grep -E '^(nvme|sd|vd|xvd|hd)'")
+	} else {
+		return nil, fmt.Errorf("unsupported OS: %s", osinfo)
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	disks := strings.Fields(string(output))
+	fmt.Println(disks)
+	return disks, nil
+}
+
+func createDiskImage(option string) {
+	disks, err := getDisks()
+	if err != nil {
+		fmt.Println("Error getting disks:", err)
+		return
+	}
+
+	backupDir := os.ExpandEnv("$HOME/backups")
+	err = os.MkdirAll(backupDir, 0755)
+	if err != nil {
+		fmt.Println("Error creating backup directory:", err)
+		return
+	}
+
+	if option == "" {
+		for _, disk := range disks {
+			imagePath := fmt.Sprintf("%s/%s_backup.img", backupDir, disk)
+			cmd := exec.Command("dd", "if=/dev/"+disk, "of="+imagePath)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			err = cmd.Run()
+			if err != nil {
+				fmt.Println("Error creating disk image for", disk, ":", err)
+			} else {
+				fmt.Println("Disk image created successfully:", imagePath)
+			}
+		}
+	} else {
+		if !contains(disks, option) {
+			fmt.Printf("Disk %s not found.\n", option)
+			return
+		}
+
+		imagePath := fmt.Sprintf("%s/%s_backup.img", backupDir, option)
+		cmd := exec.Command("dd", "if=/dev/"+option, "of="+imagePath)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		err = cmd.Run()
+		if err != nil {
+			fmt.Println("Error creating disk image for", option, ":", err)
+		} else {
+			fmt.Println("Disk image created successfully:", imagePath)
+		}
+	}
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

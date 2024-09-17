@@ -13,7 +13,7 @@ models:
     storages:
       local:
         type: local
-        keep: 10
+        keep: 10 
         path: /Users/hant/Downloads/backup1
   test-minio:
     description: "test backup with minio storage"
