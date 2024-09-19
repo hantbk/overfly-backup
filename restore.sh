@@ -1,14 +1,12 @@
 #!/bin/bash
-# @date 19/09/2024
 #
-# @description Restores a Linux server from a previous backup done with VTS backup tool (vts-backup.sh script).
 # This scripts downloads the backup from the backup server and restores the server.
 #
-# You should execute "vts-backup.sh" at the original server. And then "vts-restore.sh" at the new server.
-# More information at "vts-backup.sh"
+# You should execute "backup.sh" at the original server. And then "restore.sh" at the new server.
+# More information at "backup.sh"
 #
 # @usage
-# ./vts-restore.sh CONFIG_FILE
+# ./restore.sh CONFIG_FILE
 #
 ###
 #
@@ -79,7 +77,7 @@ if [ ! -d "$backupLocalDir" ]; then
 fi
 
 # Don't restore some domains
-fileExcludedTemp="/tmp/_VTS_restore_excluded"
+fileExcludedTemp="/tmp/_BERA_restore_excluded"
 echo -n "" > $fileExcludedTemp
 for concreteExcluded in "${domainsExcluded[@]}"
 do
@@ -120,7 +118,7 @@ if [ "$backupOrigin" = "ssh" ]; then
 		rsync -a -v -e "ssh -p${backupRemotePort}" --exclude-from "${fileExcludedTemp}" ${backupRemoteUser}@$backupRemoteServer:${backupRemoteDir}* ${backupLocalDir} > /dev/null
 		# Check if it worked
 		if [ "$?" != "0" ]; then
-			echo "	[ERROR] Rsync could not restore files from '$backupRemoteServer'"
+			echo "	[ERROR] Rsync no pudo restaurar los archivos desde '$backupRemoteServer'"
 			exit
 		fi
 		echo $DONE

@@ -1,12 +1,11 @@
 #!/bin/bash
-# @date 19/09/2024
 #
 # @description Backup and migrate a Linux server in less than 10 minutes. Backup all important information:
 #	- Services configuration
 #	- Any group of folders
 #	- Websites
 # Yet more important, backup can be easily restored in any server. So it can be also used
-# to migrate a server. See "vts-restore.sh" for further information.
+# to migrate a server. See "restore.sh" for further information.
 #
 # Features:
 # · Migrate a complex Linux server in less than 10 minutes
@@ -21,7 +20,7 @@
 # · Tested several times in live with our own servers and websites
 # 
 # @usage
-# ./vts-backup.sh CONFIG_FILE
+# ./backup.sh CONFIG_FILE
 #
 ###
 #

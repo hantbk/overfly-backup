@@ -70,3 +70,33 @@ models:
         path: ~/backups
         username: hant
         private_key: ~/.ssh/id_rsa
+
+backupDir: /home/hant/backups/
+
+filesConfig:
+  backupList:
+    - /etc/httpd/conf.d
+    - /etc/postfix
+    - /usr/share/pear/
+    - /etc/logwatch/conf/logwatch.conf
+    - /etc/my.cnf
+    - /root/
+    - /home/
+    - /etc/ssh/sshd_config
+    - /etc/sysctl.conf
+  BackupListExcluded:
+    - .s*
+    - .*
+    - nbproject
+    - *.log
+    - logs/*
+
+servicesConfig:
+  backupIptables: 1
+  backupCrontabs: 1
+  checkUsers: 1
+  checkEnabledServices: 1
+  checkInstalledPackages: 1
+
+extraConfig:
+  maintainFilePermissions: 0

@@ -33,6 +33,17 @@ var (
 	UpdatedAt time.Time
 
 	onConfigChanges = make([]func(fsnotify.Event), 0)
+
+	// Backup server
+	BackupDir               string
+	BackupList              []string
+	BackupListExcluded      []string
+	BackupIptables          int
+	BackupCrontabs          int
+	CheckUsers              int
+	CheckEnabledServices    int
+	CheckInstalledPackages  int
+	MaintainFilePermissions int
 )
 
 type WebConfig struct {
@@ -232,6 +243,17 @@ func loadConfig() error {
 
 	UpdatedAt = time.Now()
 	logger.Infof("Config loaded, found %d models.", len(Models))
+
+	// Load backup server config
+	BackupDir = viper.GetString("backupDir")
+	BackupList = viper.GetStringSlice("filesConfig.backupList")
+	BackupListExcluded = viper.GetStringSlice("filesConfig.BackupListExcluded")
+	BackupIptables = viper.GetInt("servicesConfig.backupIptables")
+	BackupCrontabs = viper.GetInt("servicesConfig.backupCrontabs")
+	CheckUsers = viper.GetInt("servicesConfig.checkUsers")
+	CheckEnabledServices = viper.GetInt("servicesConfig.checkEnabledServices")
+	CheckInstalledPackages = viper.GetInt("servicesConfig.checkInstalledPackages")
+	MaintainFilePermissions = viper.GetInt("extraConfig.maintainFilePermissions")
 
 	return nil
 }
