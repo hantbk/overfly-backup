@@ -1,72 +1,16 @@
 models:
-  test-local:
-    description: "test backup with local storage"
-    schedule:
-      cron: "0 0 * * *" # every day at midnight
-    archive:
-      includes:
-        - /Users/hant/Documents
-      excludes:
-        - /Users/hant/Documents/backup.txt
-    compress_with:
-      type: tgz
-    storages:
-      local:
-        type: local
-        keep: 10 
-        path: /Users/hant/Downloads/backup1
   test-minio:
     description: "test backup with minio storage"
-    schedule:
-      every: "1day"
-      at: "00:00"
     archive:
       includes:
         - /Users/hant/Documents
     compress_with:
       type: tgz
-    encrypt_with:
-      type: openssl
-      password: 123
-      salt: false
-      openssl: true
     storages:
       minio:
         type: minio
         bucket: vtsbackup-test
         endpoint: http://127.0.0.1:9000
         path: backups
-        access_key_id:
-        secret_access_key:
-  test-s3:
-    description: "test backup with s3 storage"
-    schedule:
-      every: "180s"
-    archive:
-      includes:
-        - /Users/hant/Documents
-    compress_with:
-      type: tgz
-    storages:
-      s3:
-        type: s3
-        bucket: vts-backup-test
-        regions: us-east-1
-        path: backups
-        access_key_id:
-        secret_access_key:
-  test-scp:
-    description: "test backup with scp storage"
-    archive:
-      includes:
-        - /Users/hant/Documents
-    compress_with:
-      type: tgz
-    storages:
-      scp:
-        type: scp
-        host: 192.168.103.129
-        port: 22
-        path: ~/backups
-        username: hant
-        private_key: ~/.ssh/id_rsa
+        access_key_id: test-user
+        secret_access_key: test-user-secret
