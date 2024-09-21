@@ -1,6 +1,8 @@
 models:
   test-local:
     description: "test backup with local storage"
+    schedule:
+      cron: "0 0 * * *" # every day at midnight
     archive:
       includes:
         - /Users/hant/Documents
@@ -13,6 +15,9 @@ models:
         path: /Users/hant/Downloads/backup1
   test-minio:
     description: "test backup with minio storage"
+    schedule:
+      every: "1day"
+      at: "00:00"
     archive:
       includes:
         - /Users/hant/Documents
@@ -28,6 +33,8 @@ models:
         secret_access_key: test-user-secret
   test-s3:
     description: "test backup with s3 storage"
+    schedule:
+      every: "180s"
     archive:
       includes:
         - /Users/hant/Documents

@@ -3,18 +3,25 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/helper"
 	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/model"
 	"github.com/hantbk/vtsbackup/scheduler"
+	"github.com/hantbk/vtsbackup/storage"
 	"github.com/hantbk/vtsbackup/web"
+	"github.com/schollz/progressbar/v3"
 	"github.com/sevlyar/go-daemon"
 	"github.com/spf13/viper"
 	"github.com/urfave/cli/v2"
@@ -154,27 +161,27 @@ func main() {
 				return web.StartHTTP(version)
 			},
 		},
+		// {
+		// 	Name:  "list-agent",
+		// 	Usage: "List running Backup agents",
+		// 	Action: func(ctx *cli.Context) error {
+		// 		pids, err := listBackupAgents()
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		if len(pids) == 0 {
+		// 			fmt.Println("No running Backup agents found.")
+		// 		} else {
+		// 			fmt.Println("Running Backup agents PIDs:")
+		// 			for _, pid := range pids {
+		// 				fmt.Println(pid)
+		// 			}
+		// 		}
+		// 		return nil
+		// 	},
+		// },
 		{
-			Name:  "list",
-			Usage: "List running Backup agents",
-			Action: func(ctx *cli.Context) error {
-				pids, err := listBackupAgents()
-				if err != nil {
-					return err
-				}
-				if len(pids) == 0 {
-					fmt.Println("No running Backup agents found.")
-				} else {
-					fmt.Println("Running Backup agents PIDs:")
-					for _, pid := range pids {
-						fmt.Println(pid)
-					}
-				}
-				return nil
-			},
-		},
-		{
-			Name:  "stop",
+			Name:  "stop-agent",
 			Usage: "Stop the running Backup agent",
 			Action: func(ctx *cli.Context) error {
 				fmt.Println("Stopping Backup agent...")
@@ -197,7 +204,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "reload",
+			Name:  "reload-agent",
 			Usage: "Reload the running Backup agent",
 			Action: func(ctx *cli.Context) error {
 				fmt.Println("Reloading Backup agent...")
@@ -221,30 +228,50 @@ func main() {
 			},
 		},
 		{
-			Name:  "backup",
-			Usage: "Perform a full server backup",
-			Flags: buildFlags([]cli.Flag{
-				&cli.StringFlag{
-					Name:    "output",
-					Aliases: []string{"o"},
-					Usage:   "Output directory for the backup (default: ~/backups)",
-					Value:   filepath.Join(os.Getenv("HOME"), "backups"),
-				},
-			}),
+			Name:  "list-model",
+			Usage: "List all configured backup models",
+			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
-				outputDir := ctx.String("output")
-				return performFullBackup(outputDir)
+				return listModel()
 			},
 		},
 		{
-			Name:  "restore",
-			Usage: "Restore server using config file",
-			Flags: buildFlags([]cli.Flag{}),
+			Name:  "list-backup",
+			Usage: "List backup files for a specific model",
+			Flags: buildFlags([]cli.Flag{
+				&cli.StringFlag{
+					Name:     "model",
+					Aliases:  []string{"m"},
+					Usage:    "Model name to list backups for",
+					Required: true,
+				},
+			}),
 			Action: func(ctx *cli.Context) error {
-				if len(configFile) == 0 {
-					return fmt.Errorf("config file is required")
-				}
-				return restoreServer(configFile)
+				modelName := ctx.String("model")
+				return listBackupFiles(modelName)
+			},
+		},
+		{
+			Name:  "download-backup",
+			Usage: "Download a backup file for a specific model",
+			Flags: buildFlags([]cli.Flag{
+				&cli.StringFlag{
+					Name:     "model",
+					Aliases:  []string{"m"},
+					Usage:    "Model name to download backup from",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:     "output",
+					Aliases:  []string{"o"},
+					Usage:    "Path to save backup file",
+					Required: true,
+				},
+			}),
+			Action: func(ctx *cli.Context) error {
+				modelName := ctx.String("model")
+				outputPath := ctx.String("output")
+				return downloadBackupFile(modelName, outputPath)
 			},
 		},
 	}
@@ -325,247 +352,161 @@ func reloadBackupAgent(pid int) {
 	}
 }
 
-// func getDisks() ([]string, error) {
-// 	var cmd *exec.Cmd
-// 	osinfo, _, err := helper.CheckOS()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if osinfo == "darwin" {
-// 		cmd = exec.Command("sh", "-c", "diskutil list | grep '/dev/disk' | awk '{print $1}'")
-// 	} else if osinfo == "linux" {
-// 		cmd = exec.Command("sh", "-c", "lsblk -d -o NAME | grep -E '^(nvme|sd|vd|xvd|hd)'")
-// 	} else {
-// 		return nil, fmt.Errorf("unsupported OS: %s", osinfo)
-// 	}
-
-// 	output, err := cmd.Output()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	disks := strings.Fields(string(output))
-// 	return disks, nil
-// }
-
-func performFullBackup(outputDir string) error {
-	fmt.Printf("Performing full server backup to %s\n", outputDir)
-
-	// Create necessary directories
-	err := os.MkdirAll(outputDir, 0755)
+func listModel() error {
+	err := initApplication()
 	if err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
+		return err
+	}
+	models := model.GetModels()
+	if len(models) == 0 {
+		fmt.Println("No backup models configured.")
+	} else {
+		fmt.Printf("Configured backup models (from %s):\n", viper.ConfigFileUsed())
+		for _, m := range models {
+			fmt.Printf("- %s\n", m.Config.Name)
+			if m.Config.Description != "" {
+				fmt.Printf("  Description: %s\n", m.Config.Description)
+			}
+			if m.Config.Schedule.Enabled {
+				fmt.Printf("  Schedule: %s\n", m.Config.Schedule.String())
+			}
+			fmt.Println()
+		}
+	}
+	return nil
+}
+
+func listBackupFiles(modelName string) error {
+	err := initApplication()
+	if err != nil {
+		return err
 	}
 
-	// Path to the backup script
-	backupScript := "./backup.sh"
-
-	// Ensure the script is executable
-	err = os.Chmod(backupScript, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to make backup script executable: %w", err)
+	m := model.GetModelByName(modelName)
+	if m == nil {
+		return fmt.Errorf("model: %q not found", modelName)
 	}
 
-	// Execute the backup script with the configuration file
-	cmd := exec.Command(backupScript, configFile)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err = cmd.Run()
+	files, err := storage.List(m.Config, "/")
 	if err != nil {
-		return fmt.Errorf("failed to execute backup script: %w", err)
+		return fmt.Errorf("failed to list backup files: %v", err)
+	}
+
+	if len(files) == 0 {
+		fmt.Printf("No backup files found for model %q\n", modelName)
+	} else {
+		fmt.Printf("Backup files for model %q:\n", modelName)
+		for _, file := range files {
+			fmt.Printf("- %s (Size: %s, Last Modified: %s)\n",
+				file.Filename,
+				humanize.Bytes(uint64(file.Size)),
+				file.LastModified.Format(time.RFC3339),
+			)
+		}
 	}
 
 	return nil
 }
 
-func restoreServer(configFile string) error {
-	fmt.Printf("Restoring server using config file %s\n", configFile)
-
-	// Path to the restore script
-	restoreScript := "./restore.sh"
-
-	// Ensure the script is executable
-	err := os.Chmod(restoreScript, 0755)
+func downloadBackupFile(modelName, outputPath string) error {
+	if outputPath == "" {
+		outputPath = "."
+	}
+	err := initApplication()
 	if err != nil {
-		return fmt.Errorf("failed to make restore script executable: %w", err)
+		return err
 	}
 
-	// Execute the restore script with the configuration file
-	cmd := exec.Command(restoreScript, configFile)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to execute restore script: %w", err)
+	m := model.GetModelByName(modelName)
+	if m == nil {
+		return fmt.Errorf("model: %q not found", modelName)
 	}
 
+	files, err := storage.List(m.Config, "/")
+	if err != nil {
+		return fmt.Errorf("failed to list backup files: %v", err)
+	}
+
+	if len(files) == 0 {
+		fmt.Printf("No backup files found for model %q\n", modelName)
+		return nil
+	}
+
+	fmt.Printf("Backup files for model %q:\n", modelName)
+	for i, file := range files {
+		fmt.Printf("%d. %s (Size: %s, Last Modified: %s)\n",
+			i+1,
+			file.Filename,
+			humanize.Bytes(uint64(file.Size)),
+			file.LastModified.Format(time.RFC3339),
+		)
+	}
+
+	var choice int
+	fmt.Print("Enter the number of the file you want to download (0 to cancel): ")
+	_, err = fmt.Scanf("%d", &choice)
+	if err != nil || choice < 0 || choice > len(files) {
+		return fmt.Errorf("invalid choice")
+	}
+
+	if choice == 0 {
+		fmt.Println("Download cancelled.")
+		return nil
+	}
+
+	selectedFile := files[choice-1]
+
+	fmt.Printf("You selected: %s\n", selectedFile.Filename)
+	fmt.Print("Do you want to proceed with the download? (Y/n): ")
+	var confirm string
+	fmt.Scanf("%s", &confirm)
+
+	if strings.ToLower(confirm) != "y" && confirm != "" {
+		fmt.Println("Download cancelled.")
+		return nil
+	}
+
+	downloadURL, err := storage.Download(m.Config, selectedFile.Filename)
+	if err != nil {
+		return fmt.Errorf("failed to get download URL: %v", err)
+	}
+
+	filePath := filepath.Join(outputPath, selectedFile.Filename)
+	dirPath := filepath.Dir(filePath)
+
+	// Ensure the output directory exists
+	if err := helper.MkdirP(dirPath); err != nil {
+		return fmt.Errorf("failed to create output directory: %v", err)
+	}
+
+	fmt.Printf("Downloading %s to %s...\n", selectedFile.Filename, filePath)
+
+	// Create the file
+	out, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %v", err)
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(downloadURL)
+	if err != nil {
+		return fmt.Errorf("failed to download file: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Create a progress bar
+	bar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		"Downloading",
+	)
+
+	// Write the body to file
+	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to save file: %v", err)
+	}
+
+	fmt.Printf("\nFile downloaded successfully: %s\n", filePath)
 	return nil
 }
-
-// func performFullBackup(outputDir string) error {
-// 	fmt.Printf("Performing full server backup to %s\n", outputDir)
-
-// 	// Create necessary directories
-// 	err := os.MkdirAll(outputDir, 0755)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to create output directory: %w", err)
-// 	}
-
-// 	// Backup files and folders
-// 	err = backupFiles(outputDir)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to backup files: %w", err)
-// 	}
-
-// 	// Backup server configuration
-// 	err = backupConfig(outputDir)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to backup config: %w", err)
-// 	}
-
-// 	// Backup websites
-// 	err = backupWebsites(outputDir)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to backup websites: %w", err)
-// 	}
-
-// 	// Change permissions if required
-// 	if config.MaintainFilePermissions == 0 {
-// 		err = changePermissions(outputDir)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to change permissions: %w", err)
-// 		}
-// 	}
-
-// 	return nil
-// }
-
-// func backupFiles(outputDir string) error {
-// 	fmt.Println("Backing up files and folders...")
-// 	for _, resource := range config.BackupList {
-// 		fmt.Printf("Creating backup for '%s'...\n", resource)
-// 		if _, err := os.Stat(resource); os.IsNotExist(err) {
-// 			fmt.Printf("Resource '%s' doesn't exist\n", resource)
-// 			continue
-// 		}
-// 		cmd := exec.Command("rsync", "-avz", "--delete", "--relative", "--exclude-from", createExcludeFile(), resource, filepath.Join(outputDir, "files"))
-// 		err := cmd.Run()
-// 		if err != nil {
-// 			return fmt.Errorf("rsync error: %w", err)
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func createExcludeFile() string {
-// 	excludeFile := "/tmp/_VTS_backup_excluded"
-// 	file, err := os.Create(excludeFile)
-// 	if err != nil {
-// 		fmt.Println("Error creating exclude file:", err)
-// 		return ""
-// 	}
-// 	defer file.Close()
-
-// 	for _, exclude := range config.BackupListExcluded {
-// 		file.WriteString(exclude + "\n")
-// 	}
-// 	file.WriteString(config.BackupDir + "\n")
-// 	return excludeFile
-// }
-
-// func backupConfig(outputDir string) error {
-// 	fmt.Println("Backing up server configuration...")
-// 	configDir := filepath.Join(outputDir, "config")
-// 	err := os.MkdirAll(configDir, 0755)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to create config directory: %w", err)
-// 	}
-
-// 	if config.CheckUsers == 1 {
-// 		fmt.Println("Creating backup for users...")
-// 		userBackupFile := filepath.Join(configDir, "users")
-// 		cmd := exec.Command("cp", "/etc/passwd", userBackupFile)
-// 		err := cmd.Run()
-// 		if err != nil {
-// 			return fmt.Errorf("error backing up users: %w", err)
-// 		}
-// 	}
-
-// 	if config.BackupIptables == 1 {
-// 		fmt.Println("Creating backup for iptables...")
-// 		cmd := exec.Command("/sbin/iptables-save", ">", filepath.Join(configDir, "iptables"))
-// 		err := cmd.Run()
-// 		if err != nil {
-// 			return fmt.Errorf("error backing up iptables: %w", err)
-// 		}
-// 	}
-
-// 	if config.BackupCrontabs == 1 {
-// 		fmt.Println("Creating backup for crontabs...")
-// 		crontabsDir := filepath.Join(configDir, "crontabs")
-// 		err := os.MkdirAll(crontabsDir, 0755)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to create crontabs directory: %w", err)
-// 		}
-// 		cmd := exec.Command("cp", "-f", "/var/spool/cron/*", crontabsDir)
-// 		err = cmd.Run()
-// 		if err != nil {
-// 			return fmt.Errorf("error backing up crontabs: %w", err)
-// 		}
-// 	}
-
-// 	if config.CheckEnabledServices == 1 {
-// 		fmt.Println("Checking enabled services...")
-// 		cmd := exec.Command("chkconfig", "--list", "|", "grep", "-i", "2:activ", "|", "awk", "'{print $1}'", "|", "sort", ">", filepath.Join(configDir, "enabledServices"))
-// 		err := cmd.Run()
-// 		if err != nil {
-// 			return fmt.Errorf("error checking enabled services: %w", err)
-// 		}
-// 	}
-
-// 	if config.CheckInstalledPackages == 1 {
-// 		fmt.Println("Checking installed packages...")
-// 		cmd := exec.Command("rpm", "-qa", "--qf", "%{NAME}\n", "|", "sort", ">", "/tmp/installedPackages.tmp")
-// 		err := cmd.Run()
-// 		if err != nil {
-// 			return fmt.Errorf("error checking installed packages: %w", err)
-// 		}
-// 		cmd = exec.Command("sh", "-c", "while read concretePackage; do provider=`rpm -q --whatprovides \"$concretePackage\" --qf \"%{NAME}\n\" | head -n 1`; echo \"$concretePackage\t$provider\" >> "+filepath.Join(configDir, "installedPackages")+"; done < /tmp/installedPackages.tmp")
-// 		err = cmd.Run()
-// 		if err != nil {
-// 			return fmt.Errorf("error adding package information: %w", err)
-// 		}
-// 	}
-
-// 	return nil
-// }
-
-// func backupWebsites(outputDir string) error {
-// 	// Implement the logic to backup websites
-// 	fmt.Println("Backing up websites...")
-// 	// Example: rsync command to backup websites
-// 	cmd := exec.Command("rsync", "-avz", "--delete", "/var/www", filepath.Join(outputDir, "websites"))
-// 	err := cmd.Run()
-// 	if err != nil {
-// 		return fmt.Errorf("rsync error: %w", err)
-// 	}
-// 	return nil
-// }
-
-// func changePermissions(outputDir string) error {
-// 	fmt.Println("Changing permissions to allow external users to access the backups...")
-// 	cmd := exec.Command("find", outputDir, "-type", "d", "-exec", "chmod", "o+xr", "{}", ";")
-// 	err := cmd.Run()
-// 	if err != nil {
-// 		return fmt.Errorf("error changing directory permissions: %w", err)
-// 	}
-// 	cmd = exec.Command("find", outputDir, "-type", "f", "-exec", "chmod", "o+r", "{}", ";")
-// 	err = cmd.Run()
-// 	if err != nil {
-// 		return fmt.Errorf("error changing file permissions: %w", err)
-// 	}
-// 	return nil
-// }
