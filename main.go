@@ -3,18 +3,25 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/hantbk/vtsbackup/config"
 	"github.com/hantbk/vtsbackup/helper"
 	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/model"
 	"github.com/hantbk/vtsbackup/scheduler"
+	"github.com/hantbk/vtsbackup/storage"
 	"github.com/hantbk/vtsbackup/web"
+	"github.com/schollz/progressbar/v3"
 	"github.com/sevlyar/go-daemon"
 	"github.com/spf13/viper"
 	"github.com/urfave/cli/v2"
@@ -60,6 +67,7 @@ func reloadHandler(sig os.Signal) error {
 }
 
 func main() {
+
 	app := cli.NewApp()
 
 	app.Version = version
@@ -153,27 +161,27 @@ func main() {
 				return web.StartHTTP(version)
 			},
 		},
+		// {
+		// 	Name:  "list-agent",
+		// 	Usage: "List running Backup agents",
+		// 	Action: func(ctx *cli.Context) error {
+		// 		pids, err := listBackupAgents()
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		if len(pids) == 0 {
+		// 			fmt.Println("No running Backup agents found.")
+		// 		} else {
+		// 			fmt.Println("Running Backup agents PIDs:")
+		// 			for _, pid := range pids {
+		// 				fmt.Println(pid)
+		// 			}
+		// 		}
+		// 		return nil
+		// 	},
+		// },
 		{
-			Name:  "list",
-			Usage: "List running Backup agents",
-			Action: func(ctx *cli.Context) error {
-				pids, err := listBackupAgents()
-				if err != nil {
-					return err
-				}
-				if len(pids) == 0 {
-					fmt.Println("No running Backup agents found.")
-				} else {
-					fmt.Println("Running Backup agents PIDs:")
-					for _, pid := range pids {
-						fmt.Println(pid)
-					}
-				}
-				return nil
-			},
-		},
-		{
-			Name:  "stop",
+			Name:  "stop-agent",
 			Usage: "Stop the running Backup agent",
 			Action: func(ctx *cli.Context) error {
 				fmt.Println("Stopping Backup agent...")
@@ -196,7 +204,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "reload",
+			Name:  "reload-agent",
 			Usage: "Reload the running Backup agent",
 			Action: func(ctx *cli.Context) error {
 				fmt.Println("Reloading Backup agent...")
@@ -220,28 +228,50 @@ func main() {
 			},
 		},
 		{
-			Name:  "listdisk",
-			Usage: "List all disk on machine.",
+			Name:  "list-model",
+			Usage: "List all configured backup models",
+			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
-				// fmt.Println("All disks:")
-				listDisk()
-				return nil
+				return listModel()
 			},
 		},
 		{
-			Name:  "createimg",
-			Usage: "Create disk image",
+			Name:  "list-backup",
+			Usage: "List backup files for a specific model",
 			Flags: buildFlags([]cli.Flag{
 				&cli.StringFlag{
-					Name:    "disk",
-					Aliases: []string{"d"},
-					Usage:   "Disk name to create image for",
+					Name:     "model",
+					Aliases:  []string{"m"},
+					Usage:    "Model name to list backups for",
+					Required: true,
 				},
 			}),
 			Action: func(ctx *cli.Context) error {
-				disk := ctx.String("disk")
-				createDiskImage(disk)
-				return nil
+				modelName := ctx.String("model")
+				return listBackupFiles(modelName)
+			},
+		},
+		{
+			Name:  "download-backup",
+			Usage: "Download a backup file for a specific model",
+			Flags: buildFlags([]cli.Flag{
+				&cli.StringFlag{
+					Name:     "model",
+					Aliases:  []string{"m"},
+					Usage:    "Model name to download backup from",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:     "output",
+					Aliases:  []string{"o"},
+					Usage:    "Path to save backup file",
+					Required: true,
+				},
+			}),
+			Action: func(ctx *cli.Context) error {
+				modelName := ctx.String("model")
+				outputPath := ctx.String("output")
+				return downloadBackupFile(modelName, outputPath)
 			},
 		},
 	}
@@ -322,107 +352,161 @@ func reloadBackupAgent(pid int) {
 	}
 }
 
-func listDisk() {
-	osinfo, _, err := helper.CheckOS()
+func listModel() error {
+	err := initApplication()
 	if err != nil {
-		return
+		return err
 	}
-	var cmd *exec.Cmd
-	if osinfo == "darwin" {
-		cmd = exec.Command("diskutil", "list")
-	} else if osinfo == "linux" {
-		cmd = exec.Command("lsblk")
+	models := model.GetModels()
+	if len(models) == 0 {
+		fmt.Println("No backup models configured.")
 	} else {
-		fmt.Println("Unsupported OS:", osinfo)
-		return
-	}
-
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Println(string(output))
-}
-
-func getDisks() ([]string, error) {
-	var cmd *exec.Cmd
-	osinfo, _, err := helper.CheckOS()
-	if err != nil {
-		return nil, err
-	}
-
-	if osinfo == "darwin" {
-		cmd = exec.Command("sh", "-c", "diskutil list | grep '/dev/disk' | awk '{print $1}'")
-	} else if osinfo == "linux" {
-		cmd = exec.Command("sh", "-c", "lsblk -d -o NAME | grep -E '^(nvme|sd|vd|xvd|hd)'")
-	} else {
-		return nil, fmt.Errorf("unsupported OS: %s", osinfo)
-	}
-
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-
-	disks := strings.Fields(string(output))
-	fmt.Println(disks)
-	return disks, nil
-}
-
-func createDiskImage(option string) {
-	disks, err := getDisks()
-	if err != nil {
-		fmt.Println("Error getting disks:", err)
-		return
-	}
-
-	backupDir := os.ExpandEnv("$HOME/backups")
-	err = os.MkdirAll(backupDir, 0755)
-	if err != nil {
-		fmt.Println("Error creating backup directory:", err)
-		return
-	}
-
-	if option == "" {
-		for _, disk := range disks {
-			imagePath := fmt.Sprintf("%s/%s_backup.img", backupDir, disk)
-			cmd := exec.Command("sudo", "dd", "if=/dev/"+disk, "of="+imagePath)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			err = cmd.Run()
-			if err != nil {
-				fmt.Println("Error creating disk image for", disk, ":", err)
-			} else {
-				fmt.Println("Disk image created successfully:", imagePath)
+		fmt.Printf("Configured backup models (from %s):\n", viper.ConfigFileUsed())
+		for _, m := range models {
+			fmt.Printf("- %s\n", m.Config.Name)
+			if m.Config.Description != "" {
+				fmt.Printf("  Description: %s\n", m.Config.Description)
 			}
-		}
-	} else {
-		if !contains(disks, option) {
-			fmt.Printf("Disk %s not found.\n", option)
-			return
-		}
-
-		imagePath := fmt.Sprintf("%s/%s_backup.img", backupDir, option)
-		cmd := exec.Command("sudo", "dd", "if=/dev/"+option, "of="+imagePath)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err = cmd.Run()
-		if err != nil {
-			fmt.Println("Error creating disk image for", option, ":", err)
-		} else {
-			fmt.Println("Disk image created successfully:", imagePath)
+			if m.Config.Schedule.Enabled {
+				fmt.Printf("  Schedule: %s\n", m.Config.Schedule.String())
+			}
+			fmt.Println()
 		}
 	}
+	return nil
 }
 
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
+func listBackupFiles(modelName string) error {
+	err := initApplication()
+	if err != nil {
+		return err
+	}
+
+	m := model.GetModelByName(modelName)
+	if m == nil {
+		return fmt.Errorf("model: %q not found", modelName)
+	}
+
+	files, err := storage.List(m.Config, "/")
+	if err != nil {
+		return fmt.Errorf("failed to list backup files: %v", err)
+	}
+
+	if len(files) == 0 {
+		fmt.Printf("No backup files found for model %q\n", modelName)
+	} else {
+		fmt.Printf("Backup files for model %q:\n", modelName)
+		for _, file := range files {
+			fmt.Printf("- %s (Size: %s, Last Modified: %s)\n",
+				file.Filename,
+				humanize.Bytes(uint64(file.Size)),
+				file.LastModified.Format(time.RFC3339),
+			)
 		}
 	}
-	return false
+
+	return nil
+}
+
+func downloadBackupFile(modelName, outputPath string) error {
+	if outputPath == "" {
+		outputPath = "."
+	}
+	err := initApplication()
+	if err != nil {
+		return err
+	}
+
+	m := model.GetModelByName(modelName)
+	if m == nil {
+		return fmt.Errorf("model: %q not found", modelName)
+	}
+
+	files, err := storage.List(m.Config, "/")
+	if err != nil {
+		return fmt.Errorf("failed to list backup files: %v", err)
+	}
+
+	if len(files) == 0 {
+		fmt.Printf("No backup files found for model %q\n", modelName)
+		return nil
+	}
+
+	fmt.Printf("Backup files for model %q:\n", modelName)
+	for i, file := range files {
+		fmt.Printf("%d. %s (Size: %s, Last Modified: %s)\n",
+			i+1,
+			file.Filename,
+			humanize.Bytes(uint64(file.Size)),
+			file.LastModified.Format(time.RFC3339),
+		)
+	}
+
+	var choice int
+	fmt.Print("Enter the number of the file you want to download (0 to cancel): ")
+	_, err = fmt.Scanf("%d", &choice)
+	if err != nil || choice < 0 || choice > len(files) {
+		return fmt.Errorf("invalid choice")
+	}
+
+	if choice == 0 {
+		fmt.Println("Download cancelled.")
+		return nil
+	}
+
+	selectedFile := files[choice-1]
+
+	fmt.Printf("You selected: %s\n", selectedFile.Filename)
+	fmt.Print("Do you want to proceed with the download? (Y/n): ")
+	var confirm string
+	fmt.Scanf("%s", &confirm)
+
+	if strings.ToLower(confirm) != "y" && confirm != "" {
+		fmt.Println("Download cancelled.")
+		return nil
+	}
+
+	downloadURL, err := storage.Download(m.Config, selectedFile.Filename)
+	if err != nil {
+		return fmt.Errorf("failed to get download URL: %v", err)
+	}
+
+	filePath := filepath.Join(outputPath, selectedFile.Filename)
+	dirPath := filepath.Dir(filePath)
+
+	// Ensure the output directory exists
+	if err := helper.MkdirP(dirPath); err != nil {
+		return fmt.Errorf("failed to create output directory: %v", err)
+	}
+
+	fmt.Printf("Downloading %s to %s...\n", selectedFile.Filename, filePath)
+
+	// Create the file
+	out, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %v", err)
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(downloadURL)
+	if err != nil {
+		return fmt.Errorf("failed to download file: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Create a progress bar
+	bar := progressbar.DefaultBytes(
+		resp.ContentLength,
+		"Downloading",
+	)
+
+	// Write the body to file
+	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to save file: %v", err)
+	}
+
+	fmt.Printf("\nFile downloaded successfully: %s\n", filePath)
+	return nil
 }
