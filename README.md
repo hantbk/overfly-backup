@@ -71,6 +71,13 @@ GLOBAL OPTIONS:
    --version, -v  print the version
 ```
 
+## Init config
+
+```bash
+touch ~/.vtsbackup/vtsbackup.yml
+```
+> Note: Or put config file in there: `/etc/vtsbackup/vtsbackup.yml`
+
 
 ## Backup schedule
 
