@@ -387,7 +387,7 @@ func createDiskImage(option string) {
 	if option == "" {
 		for _, disk := range disks {
 			imagePath := fmt.Sprintf("%s/%s_backup.img", backupDir, disk)
-			cmd := exec.Command("dd", "if=/dev/"+disk, "of="+imagePath)
+			cmd := exec.Command("sudo", "dd", "if=/dev/"+disk, "of="+imagePath)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
@@ -405,7 +405,7 @@ func createDiskImage(option string) {
 		}
 
 		imagePath := fmt.Sprintf("%s/%s_backup.img", backupDir, option)
-		cmd := exec.Command("dd", "if=/dev/"+option, "of="+imagePath)
+		cmd := exec.Command("sudo", "dd", "if=/dev/"+option, "of="+imagePath)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
