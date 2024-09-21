@@ -37,6 +37,7 @@ type S3 struct {
 	client       *s3manager.Uploader
 	storageClass string
 	awsCfg       *aws.Config
+	Endpoint     string
 }
 
 func (s S3) providerName() string {
@@ -131,6 +132,7 @@ func (s *S3) open() (err error) {
 	s.bucket = s.viper.GetString("bucket")
 	s.path = s.viper.GetString("path")
 	s.storageClass = s.viper.GetString("storage_class")
+	s.Endpoint = s.viper.GetString("endpoint")
 
 	timeout := s.viper.GetInt("timeout")
 	uploadTimeoutDuration := time.Duration(timeout) * time.Second

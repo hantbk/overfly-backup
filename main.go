@@ -274,6 +274,20 @@ func main() {
 				return downloadBackupFile(modelName, outputPath)
 			},
 		},
+		{
+			Name:  "snapshot",
+			Usage: "Create a snapshot of the running Linux system and backup to S3 or MinIO",
+			Flags: buildFlags([]cli.Flag{
+				&cli.StringFlag{
+					Name:  "storage",
+					Usage: "Storage type (s3 or minio)",
+					Value: "s3",
+				},
+			}),
+			Action: func(ctx *cli.Context) error {
+				return createSnapshot(ctx.String("storage"))
+			},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -508,5 +522,139 @@ func downloadBackupFile(modelName, outputPath string) error {
 	}
 
 	fmt.Printf("\nFile downloaded successfully: %s\n", filePath)
+	return nil
+}
+
+func createSnapshot(storageType string) error {
+	logger := logger.Tag("Snapshot")
+
+	// Initialize the application
+	err := initApplication()
+	if err != nil {
+		return err
+	}
+
+	// Get the storage configuration
+	var storageConfig *config.SubConfig
+	if storageType == "minio" {
+		storageConfig = getMinioConfig()
+	} else {
+		storageConfig = getS3Config()
+	}
+	if storageConfig == nil {
+		return fmt.Errorf("%s storage configuration not found", storageType)
+	}
+
+	// Create ZFS snapshot
+	snapshotName := fmt.Sprintf("backup-%s", time.Now().Format("20060102-150405"))
+	_, err = helper.Exec("zfs", "snapshot", "tank@"+snapshotName)
+	if err != nil {
+		logger.Error("Failed to create ZFS snapshot:", err)
+		return err
+	}
+	logger.Info("Created ZFS snapshot:", snapshotName)
+
+	// Initialize restic repository if it doesn't exist
+	err = initResticRepo(storageConfig, storageType)
+	if err != nil {
+		return err
+	}
+
+	// Backup the snapshot using restic
+	err = backupWithRestic(snapshotName, storageConfig, storageType)
+	if err != nil {
+		return err
+	}
+
+	// Remove the ZFS snapshot
+	_, err = helper.Exec("zfs", "destroy", "tank@"+snapshotName)
+	if err != nil {
+		logger.Error("Failed to remove ZFS snapshot:", err)
+		return err
+	}
+	logger.Info("Removed ZFS snapshot:", snapshotName)
+
+	return nil
+}
+
+func getMinioConfig() *config.SubConfig {
+	for _, model := range config.Models {
+		for _, storage := range model.Storages {
+			if storage.Type == "minio" {
+				return &storage
+			}
+		}
+	}
+	return nil
+}
+
+func getS3Config() *config.SubConfig {
+	for _, model := range config.Models {
+		for _, storage := range model.Storages {
+			if storage.Type == "s3" {
+				return &storage
+			}
+		}
+	}
+	return nil
+}
+
+func initResticRepo(storageConfig *config.SubConfig, storageType string) error {
+	logger := logger.Tag("Restic")
+
+	var repoURL string
+	if storageType == "minio" {
+		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("endpoint"), storageConfig.Viper.GetString("bucket"))
+	} else {
+		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("bucket"), storageConfig.Viper.GetString("path"))
+	}
+
+	cmd := exec.Command("restic", "-r", repoURL, "init")
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", storageConfig.Viper.GetString("access_key_id")),
+		fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", storageConfig.Viper.GetString("secret_access_key")),
+	)
+	if storageType == "minio" {
+		cmd.Env = append(cmd.Env, "AWS_ENDPOINT="+storageConfig.Viper.GetString("endpoint"))
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if !strings.Contains(string(output), "already initialized") {
+			logger.Error("Failed to initialize restic repository:", string(output))
+			return err
+		}
+	}
+
+	logger.Info("Restic repository initialized or already exists")
+	return nil
+}
+
+func backupWithRestic(snapshotName string, storageConfig *config.SubConfig, storageType string) error {
+	logger := logger.Tag("Restic")
+
+	var repoURL string
+	if storageType == "minio" {
+		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("endpoint"), storageConfig.Viper.GetString("bucket"))
+	} else {
+		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("bucket"), storageConfig.Viper.GetString("path"))
+	}
+
+	cmd := exec.Command("restic", "-r", repoURL, "backup", "/tank/.zfs/snapshot/"+snapshotName)
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", storageConfig.Viper.GetString("access_key_id")),
+		fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", storageConfig.Viper.GetString("secret_access_key")),
+	)
+	if storageType == "minio" {
+		cmd.Env = append(cmd.Env, "AWS_ENDPOINT="+storageConfig.Viper.GetString("endpoint"))
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Error("Failed to backup with restic:", string(output))
+		return err
+	}
+
+	logger.Info("Backup completed successfully")
 	return nil
 }

@@ -56,13 +56,15 @@ VERSION:
    master
 
 COMMANDS:
-   perform  Perform backup pipeline using config file
-   start    Start Backup agent as daemon
-   run      Run Backup agent without daemon
-   list     List running Backup agents
-   stop     Stop the running Backup agent
-   reload   Reload the running Backup agent
-   help, h  Shows a list of commands or help for one command
+   perform          Perform backup pipeline using config file
+   start            Start Backup agent as daemon
+   run              Run Backup agent without daemon
+   stop-agent       Stop the running Backup agent
+   reload-agent     Reload the running Backup agent
+   list-model       List all configured backup models
+   list-backup      List backup files for a specific model
+   download-backup  Download a backup file for a specific model
+   help, h          Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --help, -h     show help
