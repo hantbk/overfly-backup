@@ -58,7 +58,8 @@ func Snapshot() error {
 
 	// Construct the rsync command
 	args := []string{
-		"-avAXH",
+		"-aAXH",
+		"--human-readable",
 		"--delete",
 		"--info=progress2",
 		fmt.Sprintf("--exclude-from=%s", excludeFile.Name()),
@@ -78,6 +79,7 @@ func Snapshot() error {
 	fmt.Printf("Snapshot created successfully at %s\n", destPath)
 
 	if config.Compression {
+		fmt.Printf("Compressing %s as %s.tar.gz\n", destPath, destPath)
 		if err := compressSnapshot(destPath); err != nil {
 			return fmt.Errorf("failed to compress snapshot: %v", err)
 		}
