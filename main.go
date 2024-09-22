@@ -20,7 +20,6 @@ import (
 	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/model"
 	"github.com/hantbk/vtsbackup/scheduler"
-	"github.com/hantbk/vtsbackup/snapshot"
 	"github.com/hantbk/vtsbackup/storage"
 	"github.com/hantbk/vtsbackup/web"
 	"github.com/schollz/progressbar/v3"
@@ -266,9 +265,23 @@ func main() {
 		},
 		{
 			Name:  "snapshot",
-			Usage: "Create snapshot for Linux filesystem",
+			Usage: "Create a ZFS snapshot and backup using restic",
+			Flags: buildFlags([]cli.Flag{
+				&cli.StringFlag{
+					Name:    "pool",
+					Aliases: []string{"p"},
+					Usage:   "ZFS pool name",
+					Value:   "tank",
+				},
+				&cli.StringFlag{
+					Name:    "destination",
+					Aliases: []string{"d"},
+					Usage:   "Backup destination",
+					Value:   "/mnt/backup",
+				},
+			}),
 			Action: func(ctx *cli.Context) error {
-				return snapshot.Snapshot()
+				return createSnapshot(ctx)
 			},
 		},
 		{
@@ -643,5 +656,39 @@ func uninstallBackupAgent() error {
 	}
 
 	fmt.Println("Backup agent has been uninstalled successfully.")
+	return nil
+}
+
+func createSnapshot(ctx *cli.Context) error {
+	poolName := ctx.String("pool")
+	backupDestination := ctx.String("destination")
+
+	snapshotName := fmt.Sprintf("backup_%s", time.Now().Format("20060102_150405"))
+	mountPoint := fmt.Sprintf("/%s/.zfs/snapshot/%s", poolName, snapshotName)
+
+	// Create ZFS snapshot
+	createCmd := exec.Command("zfs", "snapshot", fmt.Sprintf("%s@%s", poolName, snapshotName))
+	if err := createCmd.Run(); err != nil {
+		return fmt.Errorf("failed to create ZFS snapshot: %v", err)
+	}
+	fmt.Printf("Created ZFS snapshot: %s@%s\n", poolName, snapshotName)
+
+	// Backup the snapshot using restic
+	backupCmd := exec.Command("restic", "-r", backupDestination, "backup", mountPoint)
+	backupCmd.Stdout = os.Stdout
+	backupCmd.Stderr = os.Stderr
+	if err := backupCmd.Run(); err != nil {
+		return fmt.Errorf("failed to backup snapshot: %v", err)
+	}
+	fmt.Printf("Backed up snapshot to %s\n", backupDestination)
+
+	// Destroy the snapshot
+	destroyCmd := exec.Command("zfs", "destroy", fmt.Sprintf("%s@%s", poolName, snapshotName))
+	if err := destroyCmd.Run(); err != nil {
+		return fmt.Errorf("failed to destroy ZFS snapshot: %v", err)
+	}
+	fmt.Printf("Destroyed ZFS snapshot: %s@%s\n", poolName, snapshotName)
+
+	fmt.Println("Backup process completed successfully.")
 	return nil
 }
