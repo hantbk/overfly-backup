@@ -185,10 +185,10 @@ func main() {
 			Name:  "stop",
 			Usage: "Stop the running Backup agent",
 			Action: func(c *cli.Context) error {
-				fmt.Println("Stopping Backup agent...")
+				// fmt.Println("Stopping Backup agent...")
 				err := stopBackupAgent()
 				if err != nil {
-					return cli.NewExitError(err.Error(), 1)
+					return cli.Exit(err.Error(), 1)
 				}
 				return nil
 			},
@@ -327,15 +327,15 @@ func stopBackupAgent() error {
 		return fmt.Errorf("error finding backup agent processes: %w", err)
 	}
 
-	if len(pids) == 0 {
-		fmt.Println("No running backup agent processes found.")
-		return nil
-	}
+	// if len(pids) == 0 {
+	// 	fmt.Println("No running backup agent processes found.")
+	// 	return nil
+	// }
 
-	fmt.Printf("Found %d running backup agent process(es).\n", len(pids))
+	// fmt.Printf("Found %d running backup agent process(es).\n", len(pids))
 
 	for _, pid := range pids {
-		fmt.Printf("Stopping process with PID %d...\n", pid)
+		// fmt.Printf("Stopping process with PID %d...\n", pid)
 		err := syscall.Kill(pid, syscall.SIGQUIT)
 		if err != nil {
 			return fmt.Errorf("error stopping process %d: %w", pid, err)
