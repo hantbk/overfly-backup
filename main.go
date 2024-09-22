@@ -15,6 +15,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/hantbk/vtsbackup/config"
+	"github.com/hantbk/vtsbackup/decompressor"
 	"github.com/hantbk/vtsbackup/helper"
 	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/model"
@@ -262,30 +263,15 @@ func main() {
 					Required: true,
 				},
 				&cli.StringFlag{
-					Name:     "output",
-					Aliases:  []string{"o"},
-					Usage:    "Path to save backup file",
-					Required: true,
+					Name:    "output",
+					Aliases: []string{"o"},
+					Usage:   "Path to save backup file",
 				},
 			}),
 			Action: func(ctx *cli.Context) error {
 				modelName := ctx.String("model")
 				outputPath := ctx.String("output")
 				return downloadBackupFile(modelName, outputPath)
-			},
-		},
-		{
-			Name:  "snapshot",
-			Usage: "Create a snapshot of the running Linux system and backup to S3 or MinIO",
-			Flags: buildFlags([]cli.Flag{
-				&cli.StringFlag{
-					Name:  "storage",
-					Usage: "Storage type (s3 or minio)",
-					Value: "s3",
-				},
-			}),
-			Action: func(ctx *cli.Context) error {
-				return createSnapshot(ctx.String("storage"))
 			},
 		},
 	}
@@ -384,6 +370,42 @@ func listModel() error {
 			if m.Config.Schedule.Enabled {
 				fmt.Printf("  Schedule: %s\n", m.Config.Schedule.String())
 			}
+			if m.Config.Archive != nil {
+				fmt.Println("  Archive:")
+				if includes := m.Config.Archive.GetStringSlice("includes"); len(includes) > 0 {
+					fmt.Println("    Includes:")
+					for _, include := range includes {
+						fmt.Printf("      - %s\n", include)
+					}
+				}
+				if excludes := m.Config.Archive.GetStringSlice("excludes"); len(excludes) > 0 {
+					fmt.Println("    Excludes:")
+					for _, exclude := range excludes {
+						fmt.Printf("      - %s\n", exclude)
+					}
+				}
+			}
+			if m.Config.CompressWith != (config.SubConfig{}) {
+				fmt.Printf("  Compression: %s\n", m.Config.CompressWith.Type)
+			}
+			if m.Config.EncryptWith != (config.SubConfig{}) {
+				fmt.Printf("  Encryption: %s\n", m.Config.EncryptWith.Type)
+			}
+			if m.Config.Storages != nil {
+				fmt.Println("  Storages:")
+				for name, storage := range m.Config.Storages {
+					fmt.Printf("    - %s:%s\n", name, storage.Type)
+					if storage.Type == "local" {
+						fmt.Printf("      Path: %s\n", storage.Viper.GetString("path"))
+					} else if storage.Type == "s3" || storage.Type == "minio" {
+						fmt.Printf("      Bucket: %s\n", storage.Viper.GetString("bucket"))
+						fmt.Printf("      Path: %s\n", storage.Viper.GetString("path"))
+					} else if storage.Type == "scp" {
+						fmt.Printf("      Host: %s\n", storage.Viper.GetString("host"))
+						fmt.Printf("      Path: %s\n", storage.Viper.GetString("path"))
+					}
+				}
+			}
 			fmt.Println()
 		}
 	}
@@ -424,7 +446,13 @@ func listBackupFiles(modelName string) error {
 
 func downloadBackupFile(modelName, outputPath string) error {
 	if outputPath == "" {
-		outputPath = "."
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get user home directory: %v", err)
+		}
+		outputPath = homeDir
+	} else {
+		outputPath = helper.ExplandHome(outputPath)
 	}
 	err := initApplication()
 	if err != nil {
@@ -522,139 +550,10 @@ func downloadBackupFile(modelName, outputPath string) error {
 	}
 
 	fmt.Printf("\nFile downloaded successfully: %s\n", filePath)
-	return nil
-}
-
-func createSnapshot(storageType string) error {
-	logger := logger.Tag("Snapshot")
-
-	// Initialize the application
-	err := initApplication()
-	if err != nil {
-		return err
+	// Decompress file
+	if err := decompressor.Run(filePath, modelName); err != nil {
+		return fmt.Errorf("failed to decompress file: %v", err)
 	}
 
-	// Get the storage configuration
-	var storageConfig *config.SubConfig
-	if storageType == "minio" {
-		storageConfig = getMinioConfig()
-	} else {
-		storageConfig = getS3Config()
-	}
-	if storageConfig == nil {
-		return fmt.Errorf("%s storage configuration not found", storageType)
-	}
-
-	// Create ZFS snapshot
-	snapshotName := fmt.Sprintf("backup-%s", time.Now().Format("20060102-150405"))
-	_, err = helper.Exec("zfs", "snapshot", "tank@"+snapshotName)
-	if err != nil {
-		logger.Error("Failed to create ZFS snapshot:", err)
-		return err
-	}
-	logger.Info("Created ZFS snapshot:", snapshotName)
-
-	// Initialize restic repository if it doesn't exist
-	err = initResticRepo(storageConfig, storageType)
-	if err != nil {
-		return err
-	}
-
-	// Backup the snapshot using restic
-	err = backupWithRestic(snapshotName, storageConfig, storageType)
-	if err != nil {
-		return err
-	}
-
-	// Remove the ZFS snapshot
-	_, err = helper.Exec("zfs", "destroy", "tank@"+snapshotName)
-	if err != nil {
-		logger.Error("Failed to remove ZFS snapshot:", err)
-		return err
-	}
-	logger.Info("Removed ZFS snapshot:", snapshotName)
-
-	return nil
-}
-
-func getMinioConfig() *config.SubConfig {
-	for _, model := range config.Models {
-		for _, storage := range model.Storages {
-			if storage.Type == "minio" {
-				return &storage
-			}
-		}
-	}
-	return nil
-}
-
-func getS3Config() *config.SubConfig {
-	for _, model := range config.Models {
-		for _, storage := range model.Storages {
-			if storage.Type == "s3" {
-				return &storage
-			}
-		}
-	}
-	return nil
-}
-
-func initResticRepo(storageConfig *config.SubConfig, storageType string) error {
-	logger := logger.Tag("Restic")
-
-	var repoURL string
-	if storageType == "minio" {
-		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("endpoint"), storageConfig.Viper.GetString("bucket"))
-	} else {
-		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("bucket"), storageConfig.Viper.GetString("path"))
-	}
-
-	cmd := exec.Command("restic", "-r", repoURL, "init")
-	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", storageConfig.Viper.GetString("access_key_id")),
-		fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", storageConfig.Viper.GetString("secret_access_key")),
-	)
-	if storageType == "minio" {
-		cmd.Env = append(cmd.Env, "AWS_ENDPOINT="+storageConfig.Viper.GetString("endpoint"))
-	}
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		if !strings.Contains(string(output), "already initialized") {
-			logger.Error("Failed to initialize restic repository:", string(output))
-			return err
-		}
-	}
-
-	logger.Info("Restic repository initialized or already exists")
-	return nil
-}
-
-func backupWithRestic(snapshotName string, storageConfig *config.SubConfig, storageType string) error {
-	logger := logger.Tag("Restic")
-
-	var repoURL string
-	if storageType == "minio" {
-		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("endpoint"), storageConfig.Viper.GetString("bucket"))
-	} else {
-		repoURL = fmt.Sprintf("s3:%s/%s", storageConfig.Viper.GetString("bucket"), storageConfig.Viper.GetString("path"))
-	}
-
-	cmd := exec.Command("restic", "-r", repoURL, "backup", "/tank/.zfs/snapshot/"+snapshotName)
-	cmd.Env = append(os.Environ(),
-		fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", storageConfig.Viper.GetString("access_key_id")),
-		fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", storageConfig.Viper.GetString("secret_access_key")),
-	)
-	if storageType == "minio" {
-		cmd.Env = append(cmd.Env, "AWS_ENDPOINT="+storageConfig.Viper.GetString("endpoint"))
-	}
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		logger.Error("Failed to backup with restic:", string(output))
-		return err
-	}
-
-	logger.Info("Backup completed successfully")
 	return nil
 }

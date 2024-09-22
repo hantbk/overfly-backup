@@ -1,6 +1,11 @@
 models:
-  snapshot:
+  test:
     description: "test backup with snapshot"
+    archive:
+      includes:
+        - /Users/hant/Documents
+    compress_with:
+      type: tgz
     storages:
       minio:
         type: minio
