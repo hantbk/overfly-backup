@@ -263,6 +263,13 @@ func main() {
 				return downloadBackupFile(modelName, outputPath)
 			},
 		},
+		{
+			Name:  "uninstall",
+			Usage: "Uninstall backup agent",
+			Action: func(ctx *cli.Context) error {
+				return uninstallBackupAgent()
+			},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -582,5 +589,29 @@ func downloadBackupFile(modelName, outputPath string) error {
 		return fmt.Errorf("failed to decompress file: %v", err)
 	}
 
+	return nil
+}
+
+func uninstallBackupAgent() error {
+	fmt.Println("Uninstalling backup agent...")
+
+	// Stop the daemon
+	if err := stopBackupAgent(); err != nil {
+		fmt.Printf("Warning: Failed to stop backup agent: %v\n", err)
+	}
+
+	// Remove binary
+	binPath := "/usr/local/bin/vtsbackup"
+	if err := os.Remove(binPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove backup agent binary: %v", err)
+	}
+
+	// Remove configuration directory
+	configDir := filepath.Join(os.Getenv("HOME"), ".vtsbackup")
+	if err := os.RemoveAll(configDir); err != nil {
+		return fmt.Errorf("failed to remove backup agent configuration directory: %v", err)
+	}
+
+	fmt.Println("Backup agent has been uninstalled successfully.")
 	return nil
 }
