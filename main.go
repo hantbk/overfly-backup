@@ -182,30 +182,19 @@ func main() {
 		// 	},
 		// },
 		{
-			Name:  "stop-agent",
+			Name:  "stop",
 			Usage: "Stop the running Backup agent",
-			Action: func(ctx *cli.Context) error {
+			Action: func(c *cli.Context) error {
 				fmt.Println("Stopping Backup agent...")
-				pids, err := listBackupAgents()
+				err := stopBackupAgent()
 				if err != nil {
-					return err
-				}
-				if len(pids) == 0 {
-					fmt.Println("No running Backup agents found.")
-				} else {
-					fmt.Println("Running Backup agents PIDs:")
-					for _, pid := range pids {
-						fmt.Println(pid)
-					}
-				}
-				for _, pid := range pids {
-					stopBackupAgent(pid)
+					return cli.NewExitError(err.Error(), 1)
 				}
 				return nil
 			},
 		},
 		{
-			Name:  "reload-agent",
+			Name:  "reload",
 			Usage: "Reload the running Backup agent",
 			Action: func(ctx *cli.Context) error {
 				fmt.Println("Reloading Backup agent...")
@@ -332,14 +321,52 @@ func listBackupAgents() ([]int, error) {
 	return pids, nil
 }
 
-func stopBackupAgent(pid int) {
-	cmd := exec.Command("kill", "-QUIT", strconv.Itoa(pid))
-	err := cmd.Run()
+func stopBackupAgent() error {
+	pids, err := findBackupAgentPIDs()
 	if err != nil {
-		fmt.Println("Error:", err)
-	} else {
-		fmt.Println("Backup agent stopped successfully")
+		return fmt.Errorf("error finding backup agent processes: %w", err)
 	}
+
+	if len(pids) == 0 {
+		fmt.Println("No running backup agent processes found.")
+		return nil
+	}
+
+	fmt.Printf("Found %d running backup agent process(es).\n", len(pids))
+
+	for _, pid := range pids {
+		fmt.Printf("Stopping process with PID %d...\n", pid)
+		err := syscall.Kill(pid, syscall.SIGQUIT)
+		if err != nil {
+			return fmt.Errorf("error stopping process %d: %w", pid, err)
+		}
+	}
+
+	fmt.Println("All backup agent processes have been stopped.")
+	return nil
+}
+
+func findBackupAgentPIDs() ([]int, error) {
+	cmd := exec.Command("pgrep", "-f", "vtsbackup.*run")
+	output, err := cmd.Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+			// No processes found, not an error
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	var pids []int
+	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
+		pid, err := strconv.Atoi(line)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing PID: %w", err)
+		}
+		pids = append(pids, pid)
+	}
+
+	return pids, nil
 }
 
 func reloadBackupAgent(pid int) {

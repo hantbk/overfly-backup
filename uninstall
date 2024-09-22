@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+
+set -e
+
+bin="vtsbackup"
+dest_dir="/usr/local/bin"
+bin_path="${dest_dir}/${bin}"
+
+stop_daemon() {
+    echo "Stopping vtsbackup daemon..."
+    if command -v vtsbackup >/dev/null 2>&1; then
+        vtsbackup stop
+    else
+        pids=$(ps aux | grep '[v]tsbackup' | awk '{print $2}')
+        if [ -n "$pids" ]; then
+            echo "Killing vtsbackup processes..."
+            kill $pids
+        fi
+    fi
+    sleep 2  # Give some time for the process to stop
+}
+
+# Stop the daemon before uninstalling
+stop_daemon
+
+if [ -f "$bin_path" ]; then
+    echo "Removing $bin_path..."
+    sudo rm "$bin_path"
+    echo "$bin has been uninstalled."
+else
+    echo "$bin is not installed at $bin_path."
+fi
+
+if [ -d "$HOME/.vtsbackup" ]; then
+    echo "Removing $HOME/.vtsbackup directory..."
+    rm -rf "$HOME/.vtsbackup"
+    echo "$HOME/.vtsbackup directory has been removed."
+else
+    echo "$HOME/.vtsbackup directory does not exist."
+fi
+
+echo "Uninstallation complete."
