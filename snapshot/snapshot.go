@@ -28,16 +28,7 @@ func Snapshot() error {
 		return fmt.Errorf("failed to load snapshot config: %v", err)
 	}
 
-	// Check if the destination disk exists
-	if !directoryExists(config.DestDisk) {
-		fmt.Printf("Destination disk %s does not exist. Creating it...\n", config.DestDisk)
-		if err := os.MkdirAll(config.DestDisk, 0755); err != nil {
-			return fmt.Errorf("failed to create destination disk: %v", err)
-		}
-		fmt.Printf("Created destination disk: %s\n", config.DestDisk)
-	}
-
-	destPath := filepath.Join(config.DestDisk, config.FilePath, fmt.Sprintf("%s--%s", config.FileName, time.Now().Format("2006-01-02-15-04-05")))
+	destPath := filepath.Join(config.FilePath, fmt.Sprintf("%s--%s", config.FileName, time.Now().Format("2006-01-02-15-04-05")))
 
 	// Ensure the destination directory exists
 	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
@@ -164,12 +155,4 @@ func compressSnapshot(path string) error {
 func unmountBackupDisk(disk string) error {
 	cmd := exec.Command("umount", disk)
 	return cmd.Run()
-}
-
-func directoryExists(path string) bool {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return info.IsDir()
 }
