@@ -20,6 +20,7 @@ import (
 	"github.com/hantbk/vtsbackup/logger"
 	"github.com/hantbk/vtsbackup/model"
 	"github.com/hantbk/vtsbackup/scheduler"
+	"github.com/hantbk/vtsbackup/snapshot"
 	"github.com/hantbk/vtsbackup/storage"
 	"github.com/hantbk/vtsbackup/web"
 	"github.com/schollz/progressbar/v3"
@@ -82,7 +83,7 @@ func main() {
 	app.Commands = []*cli.Command{
 		{
 			Name:  "perform",
-			Usage: "Perform backup pipeline using config file",
+			Usage: "Perform backup pipeline using config file. If no model is specified, all models will be performed.",
 			Flags: buildFlags([]cli.Flag{
 				&cli.StringSliceFlag{
 					Name:    "model",
@@ -218,7 +219,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "list-model",
+			Name:  "listM",
 			Usage: "List all configured backup models",
 			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
@@ -226,7 +227,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "list-backup",
+			Name:  "listB",
 			Usage: "List backup files for a specific model",
 			Flags: buildFlags([]cli.Flag{
 				&cli.StringFlag{
@@ -242,7 +243,7 @@ func main() {
 			},
 		},
 		{
-			Name:  "download-backup",
+			Name:  "download",
 			Usage: "Download a backup file for a specific model",
 			Flags: buildFlags([]cli.Flag{
 				&cli.StringFlag{
@@ -261,6 +262,13 @@ func main() {
 				modelName := ctx.String("model")
 				outputPath := ctx.String("output")
 				return downloadBackupFile(modelName, outputPath)
+			},
+		},
+		{
+			Name:  "snapshot",
+			Usage: "Create snapshot for Linux filesystem",
+			Action: func(ctx *cli.Context) error {
+				return snapshot.Snapshot()
 			},
 		},
 		{

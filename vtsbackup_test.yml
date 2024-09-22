@@ -1,14 +1,18 @@
 models:
   test:
-    description: "test backup with snapshot"
+    description: "test backup "
     archive:
       includes:
-        - /Users/hant/Documents
+        - /home/root
+    schedule:
+      type: cron
+      cron: "0 0 * * *"
     compress_with:
       type: tgz
     storages:
       minio:
         type: minio
+        keep: 10
         bucket: vtsbackup-test
         endpoint: http://127.0.0.1:9000
         path: backups

@@ -72,7 +72,7 @@ func (sc ScheduleConfig) String() string {
 type ModelConfig struct {
 	Name        string
 	Description string
-	// WorkDir of the gobackup started
+	// WorkDir of the backup started
 	WorkDir        string
 	TempPath       string
 	DumpPath       string
@@ -83,7 +83,6 @@ type ModelConfig struct {
 	Splitter       *viper.Viper
 	Storages       map[string]SubConfig
 	DefaultStorage string
-	Notifiers      map[string]SubConfig
 	Viper          *viper.Viper
 	BeforeScript   string
 	AfterScript    string
