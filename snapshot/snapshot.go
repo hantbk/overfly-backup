@@ -37,11 +37,19 @@ func Snapshot() error {
 		}
 	}
 
-	destPath := filepath.Join(config.FilePath, fmt.Sprintf("%s--%s", config.FileName, time.Now().Format("2006-01-02-15-04-05")))
+	// Get the current time once
+	currentTime := time.Now().Format("2006-01-02-15-04-05")
+
+	// Construct the destination path
+	destPath := filepath.Join(config.FilePath, fmt.Sprintf("%s--%s", config.FileName, currentTime))
 
 	// Ensure the destination directory exists
-	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+	if err := os.MkdirAll(destPath, 0755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %v", err)
+	}
+
+	if !filepath.IsAbs(config.FilePath) {
+		return fmt.Errorf("FILE_PATH in configuration must be an absolute path")
 	}
 
 	// Create a temporary file for excludes
