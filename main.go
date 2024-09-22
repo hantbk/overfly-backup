@@ -593,7 +593,7 @@ func downloadBackupFile(modelName, outputPath string) error {
 }
 
 func uninstallBackupAgent() error {
-	fmt.Println("Uninstalling backup agent...")
+	// fmt.Println("Uninstalling backup agent...")
 
 	// Stop the daemon
 	if err := stopBackupAgent(); err != nil {
@@ -602,14 +602,36 @@ func uninstallBackupAgent() error {
 
 	// Remove binary
 	binPath := "/usr/local/bin/vtsbackup"
-	if err := os.Remove(binPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to remove backup agent binary: %v", err)
+	if err := os.Remove(binPath); err != nil {
+		if os.IsPermission(err) {
+			// fmt.Println("Attempting to remove binary with sudo...")
+			cmd := exec.Command("sudo", "rm", binPath)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("failed to remove backup agent binary: %v\nOutput: %s", err, out)
+			}
+			// fmt.Println("Binary removed successfully with sudo.")
+		} else if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove backup agent binary: %v", err)
+		}
+	} else {
+		// fmt.Println("Binary removed successfully.")
 	}
 
 	// Remove configuration directory
 	configDir := filepath.Join(os.Getenv("HOME"), ".vtsbackup")
 	if err := os.RemoveAll(configDir); err != nil {
-		return fmt.Errorf("failed to remove backup agent configuration directory: %v", err)
+		if os.IsPermission(err) {
+			// fmt.Println("Attempting to remove configuration directory with sudo...")
+			cmd := exec.Command("sudo", "rm", "-rf", configDir)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("failed to remove backup agent configuration directory: %v\nOutput: %s", err, out)
+			}
+			// fmt.Println("Configuration directory removed successfully with sudo.")
+		} else {
+			return fmt.Errorf("failed to remove backup agent configuration directory: %v", err)
+		}
+	} else {
+		// fmt.Println("Configuration directory removed successfully.")
 	}
 
 	fmt.Println("Backup agent has been uninstalled successfully.")
