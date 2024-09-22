@@ -35,12 +35,16 @@
 
 - OpenSSL - `aes-256-cbc` encrypt
 
-### Install (macOS / Linux)
+### Install Linux
 ```shell
 curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh
 ```
+### Uninstall
+```shell
+curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/uninstall | sh
+```
 
-## Start 
+## Usage
 ```shell
 vtsbackup -h
 ```
@@ -59,8 +63,8 @@ COMMANDS:
    perform          Perform backup pipeline using config file
    start            Start Backup agent as daemon
    run              Run Backup agent without daemon
-   stop-agent       Stop the running Backup agent
-   reload-agent     Reload the running Backup agent
+   stop             Stop the running Backup agent
+   reload           Reload the running Backup agent
    list-model       List all configured backup models
    list-backup      List backup files for a specific model
    download-backup  Download a backup file for a specific model
@@ -327,7 +331,7 @@ curl "http://0.0.0.0:2703/api/list?model=test-minio"
 curl -O -J -L "http://0.0.0.0:2703/api/download?model=test-minio&file=backups/2024.09.21.22.49.41.tar.gz"
  ```
 
- ```json
+ ```
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100    41  100    41    0     0  33198      0 --:--:-- --:--:-- --:--:-- 41000
@@ -349,7 +353,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"model":"test-minio"}' htt
 curl http://0.0.0.0:2703/api/log
  ```
 
- ```json
+ ```
 2024/09/21 22:51:16 [Config] Load config from default path.
 2024/09/21 22:51:16 [Config] Other users are able to access /root/.vtsbackup/vtsbackup.yml with mode -rw-r--r--
 2024/09/21 22:51:16 [Config] Config file: /root/.vtsbackup/vtsbackup.yml
