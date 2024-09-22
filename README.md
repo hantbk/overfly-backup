@@ -16,32 +16,9 @@
 - S3 - Amazon S3
 - MinIO - S3 compatible object storage server
 
-### Compressor
-
-| Type                            | Ext         | Parallel Support |
- |---------------------------------|-------------|------------------|
-| `gz`, `tgz`, `taz`, `tar.gz`    | `.tar.gz`   | pigz             |
-| `Z`, `taZ`, `tar.Z`             | `.tar.Z`    |                  |
-| `bz2`, `tbz`, `tbz2`, `tar.bz2` | `.tar.bz2`  | pbzip2           |
-| `lz`, `tar.lz`                  | `.tar.lz`   |                  |
-| `lzma`, `tlz`, `tar.lzma`       | `.tar.lzma` |                  |
-| `lzo`, `tar.lzo`                | `.tar.lzo`  |                  |
-| `xz`, `txz`, `tar.xz`           | `.tar.xz`   | pixz             |
-| `zst`, `tzst`, `tar.zst`        | `.tar.zst`  |                  |
-| `tar`                           | `.tar`      |                  |
-| default                         | `.tar`      |                  |
-
-### Encryptor
-
-- OpenSSL - `aes-256-cbc` encrypt
-
 ### Install Linux
 ```shell
 curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh
-```
-### Uninstall
-```shell
-curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/uninstall | sh
 ```
 
 ## Usage

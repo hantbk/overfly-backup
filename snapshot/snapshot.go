@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hantbk/vtsbackup/logger"
 )
 
 type snapshotConfig struct {
@@ -26,6 +28,13 @@ func Snapshot() error {
 	config, err := loadSnapshotConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load snapshot config: %v", err)
+	}
+
+	// Add mount check for destDisk if it's not "/"
+	if config.DestDisk != "/" {
+		if err := checkAndMountDisk(config.DestDisk); err != nil {
+			return fmt.Errorf("failed to check/mount destination disk: %v", err)
+		}
 	}
 
 	destPath := filepath.Join(config.FilePath, fmt.Sprintf("%s--%s", config.FileName, time.Now().Format("2006-01-02-15-04-05")))
@@ -155,4 +164,35 @@ func compressSnapshot(path string) error {
 func unmountBackupDisk(disk string) error {
 	cmd := exec.Command("umount", disk)
 	return cmd.Run()
+}
+
+// Add this new function to check and mount the disk
+func checkAndMountDisk(destDisk string) error {
+	logger := logger.Tag("Snapshot")
+
+	logger.Infof("Checking mount point: %s", destDisk)
+
+	// Check if the disk is mounted
+	out, err := exec.Command("mount").Output()
+	if err != nil {
+		return fmt.Errorf("failed to check mount status: %v", err)
+	}
+
+	if !strings.Contains(string(out), destDisk) {
+		logger.Info("Disk not mounted, attempting remount")
+
+		cmd := exec.Command("sudo", "mount", "-o", "rw", destDisk)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("could not mount %s as read-write: %v", destDisk, err)
+		}
+
+		// Check again if the mount was successful
+		out, err = exec.Command("mount").Output()
+		if err != nil || !strings.Contains(string(out), destDisk) {
+			return fmt.Errorf("failed to verify mount after attempt: %v", err)
+		}
+	}
+
+	logger.Info("Disk mounted successfully, continuing...")
+	return nil
 }
