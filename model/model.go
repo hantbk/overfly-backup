@@ -10,6 +10,7 @@ import (
 	"github.com/hantbk/vtsbackup/encryptor"
 	"github.com/hantbk/vtsbackup/helper"
 	"github.com/hantbk/vtsbackup/logger"
+	"github.com/hantbk/vtsbackup/notifier"
 	"github.com/hantbk/vtsbackup/splitter"
 	"github.com/hantbk/vtsbackup/storage"
 	"github.com/spf13/viper"
@@ -25,6 +26,15 @@ func (m Model) Perform() (err error) {
 	logger := logger.Tag(fmt.Sprintf("Model: %s", m.Config.Name))
 
 	m.before()
+
+	defer func() {
+		if err != nil {
+			logger.Error(err)
+			notifier.Failure(m.Config, err.Error())
+		} else {
+			notifier.Success(m.Config)
+		}
+	}()
 
 	logger.Info("WorkDir:", m.Config.DumpPath)
 

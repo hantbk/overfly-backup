@@ -1,15 +1,18 @@
 models:
   test:
-    description: "test backup "
+    description: "test backup test"
     archive:
       includes:
-        - /root 
+        - /Users/hant/Downloads/
     schedule:
       type: cron
       cron: "0 0 * * *"
     compress_with:
       type: tgz
     storages:
+      local:
+        type: local
+        path: /Users/hant/
       minio:
         type: minio
         keep: 10
