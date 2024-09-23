@@ -3,7 +3,7 @@ models:
     description: "test backup "
     archive:
       includes:
-        - /home/root
+        - /root 
     schedule:
       type: cron
       cron: "0 0 * * *"

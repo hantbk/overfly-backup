@@ -21,6 +21,11 @@
 curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh
 ```
 
+### Install Linux with specific version
+```shell
+curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh -s v0.0.1
+```
+
 ## Usage
 ```shell
 vtsbackup -h
