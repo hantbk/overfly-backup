@@ -58,29 +58,28 @@ fi
 mkdir -p ~/.vtsbackup
 
 cat <<EOF> ~/.vtsbackup/vtsbackup.yml
+# Default VTSBackup configuration
 models:
   default:
-    description: "This is a default scenario for backup job"
+    description: "Default backup scenario"
     archive:
       includes:
-        - /root/data/
+        - /path/to/backup/  # Replace with actual path
     schedule:
-      cron: "0 0 * * *" 
+      cron: "0 0 * * *"  # Run daily at midnight
     compress_with:
       type: tgz
-    notifiers:
-      telegram:
-        type: telegram
-        chat_id: "@vtsbackuptest"
-        token: your-token-here
     storages:
+      local:
+        type: local
+        path: /path/to/local/backups  # Replace with actual path
       minio:
         type: minio
-        bucket: vtsbackup-test
-        endpoint: http://127.0.0.1:9000
+        bucket: your-bucket-name  # Replace with actual bucket name
+        endpoint: http://your-minio-endpoint:9000  # Replace with actual endpoint
         path: backups
-        access_key_id: test-user
-        secret_access_key: test-user-secret
+        access_key_id: ${MINIO_ACCESS_KEY_ID}
+        secret_access_key: ${MINIO_SECRET_ACCESS_KEY}
 EOF
 
 cat <<EOF > ~/.vtsbackup/snapshot.conf
@@ -109,7 +108,7 @@ FILE_PATH=/mnt/backup/vtsbackup
 
 # Backup File Name
 # This is the name the backup file will have
-# By default, it's in a form like: Backup--2016-2-23
+# By default, it's in a form like: Backup--2024-9-24
 FILE_NAME=Backup
 
 # Compression

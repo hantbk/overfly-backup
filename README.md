@@ -57,14 +57,11 @@ GLOBAL OPTIONS:
    --version, -v  print the version
 ```
 
-## Init config
+## Config
 
 ```bash
-touch ~/.vtsbackup/vtsbackup.yml
 nano ~/.vtsbackup/vtsbackup.yml
 ```
-> Note: Or put config file in there: `/etc/vtsbackup/vtsbackup.yml`
-
 
 ## Backup schedule
 
@@ -166,7 +163,7 @@ And then start daemon:
 
  ```bash
  $ vtsbackup start
- Starting API server on port http://127.0.0.1:2703
+ Starting API server on port http://127.0.0.1:1201
 
 ## Signal handling
 
