@@ -21,6 +21,7 @@ func Exec(command string, args ...string) (output string, err error) {
 	return ExecWithStdio(command, false, args...)
 }
 
+// ExecWithStdio cli commands with stdio
 func ExecWithStdio(command string, stdout bool, args ...string) (output string, err error) {
 	commands := spaceRegexp.Split(command, -1)
 	command = commands[0]

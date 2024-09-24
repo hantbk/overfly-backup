@@ -1,23 +1,67 @@
+web:
+  username: admin
+  password: admin
 models:
   test:
-    description: "test backup test"
+    description: "test backup"
     archive:
       includes:
-        - /Users/hant/Downloads/
+        - /Users/hant/Documents/
     schedule:
       type: cron
       cron: "0 0 * * *"
     compress_with:
       type: tgz
+    notifiers:
+      telegram:
+        type: telegram
+        chat_id: "@vtsbackuptest"
+        token: your-token-here
+    default_storage: minio
     storages:
-      local:
-        type: local
-        path: /Users/hant/
       minio:
         type: minio
-        keep: 10
         bucket: vtsbackup-test
         endpoint: http://127.0.0.1:9000
         path: backups
         access_key_id: test-user
         secret_access_key: test-user-secret
+  normal_files:
+    schedule:
+      every: "1day"
+      at: "0:30"
+    storages:
+      scp:
+        type: scp
+        keep: 10
+        path: ~/backup
+        host: your-host.com
+        private_key: ~/.ssh/id_rsa
+        username: ubuntu
+        password: password
+        timeout: 300
+  test_model:
+    compress_with:
+      type: tgz
+    storages:
+      ftp:
+        type: ftp
+        keep: 15
+        path: /backup1/foo
+        host: your-host.com
+        port: 21
+        timeout: 30
+        username: user1
+        password: pass1
+  expand_env:
+    archive:
+      includes:
+        - /Users/hant/Documents/
+    storages:
+      s3:
+        type: s3
+        bucket: vtsbackup-test
+        region: ap-southeast-1
+        path: backups
+        access_key_id: $S3_ACCESS_KEY_ID
+        secret_access_key: ${S3_SECRET_ACCESS_KEY}

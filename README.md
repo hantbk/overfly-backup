@@ -278,7 +278,7 @@ GO_ENV=dev go run main.go -- perform --config ./tests/minio.yml
 ### Check status
 
  ```bash
-curl http://0.0.0.0:2703/status
+curl http://0.0.0.0:1201/status
  ```
 
  ```json
@@ -290,7 +290,7 @@ curl http://0.0.0.0:2703/status
 ### Get config
 
  ```bash
-curl http://0.0.0.0:2703/api/config
+curl http://0.0.0.0:1201/api/config
  ```
 
  ```json
@@ -300,7 +300,7 @@ curl http://0.0.0.0:2703/api/config
 ### List backup files for a specific model:
 
  ```bash
-curl "http://0.0.0.0:2703/api/list?model=test-minio"
+curl "http://0.0.0.0:1201/api/list?model=test-minio"
  ```
 
  ```json
@@ -310,7 +310,7 @@ curl "http://0.0.0.0:2703/api/list?model=test-minio"
 ### Download a backup file:
 
  ```bash
-curl -O -J -L "http://0.0.0.0:2703/api/download?model=test-minio&file=backups/2024.09.21.22.49.41.tar.gz"
+curl -O -J -L "http://0.0.0.0:1201/api/download?model=test-minio&file=backups/2024.09.21.22.49.41.tar.gz"
  ```
 
  ```
@@ -322,7 +322,7 @@ curl -O -J -L "http://0.0.0.0:2703/api/download?model=test-minio&file=backups/20
 ### Perform a backup:
 
  ```bash
-curl -X POST -H "Content-Type: application/json" -d '{"model":"test-minio"}' http://0.0.0.0:2703/api/perform
+curl -X POST -H "Content-Type: application/json" -d '{"model":"test-minio"}' http://0.0.0.0:1201/api/perform
  ```
 
  ```json
@@ -332,7 +332,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"model":"test-minio"}' htt
 ### Get log stream
 
  ```bash
-curl http://0.0.0.0:2703/api/log
+curl http://0.0.0.0:1201/api/log
  ```
 
  ```
@@ -341,7 +341,7 @@ curl http://0.0.0.0:2703/api/log
 2024/09/21 22:51:16 [Config] Config file: /root/.vtsbackup/vtsbackup.yml
 2024/09/21 22:51:16 [Config] Config loaded, found 1 models.
 2024/09/21 22:51:16 [API] You are running with insecure API server. Please don't forget setup `web.password` in config file for more safety.
-2024/09/21 22:51:16 [API] Starting API server on port http://0.0.0.0:2703
+2024/09/21 22:51:16 [API] Starting API server on port http://0.0.0.0:1201
 2024/09/21 22:59:37 [Model: test-minio] WorkDir: /tmp/backup1412014860/1726933876879263691/test-minio
 2024/09/21 22:59:37 [Archive] => includes 1 rules
 2024/09/21 22:59:37 [Compressor] => Compress: tgz

@@ -57,6 +57,32 @@ fi
 
 mkdir -p ~/.vtsbackup
 
+cat <<EOF> ~/.vtsbackup/vtsbackup.yml
+models:
+  default:
+    description: "This is a default scenario for backup job"
+    archive:
+      includes:
+        - /root/data/
+    schedule:
+      cron: "0 0 * * *" 
+    compress_with:
+      type: tgz
+    notifiers:
+      telegram:
+        type: telegram
+        chat_id: "@vtsbackuptest"
+        token: your-token-here
+    storages:
+      minio:
+        type: minio
+        bucket: vtsbackup-test
+        endpoint: http://127.0.0.1:9000
+        path: backups
+        access_key_id: test-user
+        secret_access_key: test-user-secret
+EOF
+
 cat <<EOF > ~/.vtsbackup/snapshot.conf
 #
 #	VTSBACKUP CONFIG FILE
