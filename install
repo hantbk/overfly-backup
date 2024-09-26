@@ -82,44 +82,48 @@ models:
         secret_access_key: ${MINIO_SECRET_ACCESS_KEY}
 EOF
 
-cat <<EOF > ~/.vtsbackup/snapshot.conf
+cat <<EOF > ~/.vtsbackup/snapshot.yml
+# ------- CONF SECTION --------
 #
-#	VTSBACKUP CONFIG FILE
+# Default number of snapshots kept when run
+# Override with --snapshots NUMBER (-s NUMBER) argument
 #
-#	This file should live as ~/.vtsbackup/snapshot.conf
+SNAPSHOT_COUNT: 10
 
-# What to Backup
-# Select the directory to backup
-BACKUP_PATH=/
+# Email address for errors, assign directly or read from file. Comment out either, or both if you don't want any mails.
+# Sends the following errors: "Missing destination", "Backup currently running" and "Diskspace warning".
 
-# Excluding Files
-# Add any files and folders to be exlcuded to the list below
-EXCLUDE_LIST= "/mnt/backup "
+# Name of small info file created in DEST_PATH after completed backup
+#
+INFO_FILE: "backup_info.txt"
 
-# Disk to write backup to
-# This is the disk that the backup will be stored on
-# Use "/" to save backup to your root disk
-DEST_DISK=/mnt/backup
+# Include a list of the directories which contain changed files since the last snapshot
+#
+SHOW_CHANGED_DIRS: "yes"
 
-# Conststant Backup Path
-# By default, the backup path is supplied as an argument but you
-# can specify a constant one here, include mount point in the path
-FILE_PATH=/mnt/backup/vtsbackup
+# Arguments to rsync
+# -a equals -rlptgoD.  --protect-args improves handling of filenames with spaces.
+# Override with --rsync-args ARGS (-r ARGS) argument (arguments without dash here, eg. --rsync-args rlptD
+#
+RSYNC_ARGS: "-a --protect-args"
 
-# Backup File Name
-# This is the name the backup file will have
-# By default, it's in a form like: Backup--2024-9-24
-FILE_NAME=Backup
+# Backup permissions to separate file, "yes" or "no". This should not be needed on most systems.
+# This file may be large and will take up space in each snapshot.
+# This will only work if source is locally mounted and getfacl is installed
+#
+BACKUP_PERMISSIONS: "no"
 
-# Compression
-# Compression is enabled by default
-# This can be resource intensive
-COMPRESSION=false
+# Logfile, make sure it's writable by the user running the script
+LOGFILE: "/var/log/snapshotbackup.log"
 
-# Auto Unmount
-# Automatically unmount the backup disk
-# THIS WILL BE FORCED TO FALSE IF BACKING UP TO ROOT DISK ("/")
-AUTOUNMOUNT=false
+# Set error level for less free space on destination than total source size
+# "ERROR" aborts the script, "WARNING" only writes log and sends mail
+# Note that the backup might still complete if there is enough space for the current snapshot.
+#
+SPACE_ERRORLEVEL: "WARNING"
+#
+# ------ END OF CONF SECTION ------
+
 EOF
 
 echo "${bin} ${version} has been installed."
