@@ -1,9 +1,50 @@
 ## Install the MinIO Server and Client
 Use can use [MinIO](https://min.io) for local development. It is a self-hosted S3-compatible object storage server.
+
+## Install in MacOS
 ```bash
 brew install minio/stable/minio
 brew install minio/stable/mc
 ```
+
+## Install in Linux AMD64
+### Install MinIO Server
+```bash
+wget https://dl.min.io/server/minio/release/linux-amd64/archive/minio_20240913202602.0.0_amd64.deb -O minio.deb
+sudo dpkg -i minio.deb
+```
+
+### Install MinIO Client
+```bash
+curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+  --create-dirs \
+  -o $HOME/minio-binaries/mc
+
+chmod +x $HOME/minio-binaries/mc
+export PATH=$PATH:$HOME/minio-binaries/
+
+mc --help
+```
+
+## Install in Linux ARM64
+### Install MinIO Server
+```bash
+wget https://dl.min.io/server/minio/release/linux-arm64/archive/minio_20240913202602.0.0_arm64.deb -O minio.deb
+sudo dpkg -i minio.deb
+```
+
+### Install MinIO Client
+```bash
+curl https://dl.min.io/client/mc/release/linux-arm64/mc \
+  --create-dirs \
+  -o ~/minio-binaries/mc
+
+chmod +x $HOME/minio-binaries/mc
+export PATH=$PATH:$HOME/minio-binaries/
+
+mc --help
+```
+
 Start MinIO server:
 ```bash
 minio server /tmp/minio
