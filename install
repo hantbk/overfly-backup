@@ -61,22 +61,19 @@ cat <<EOF> ~/.vtsbackup/vtsbackup.yml
 # Default VTSBackup configuration
 models:
   default:
-    description: "Default backup scenario"
+    description: "Default backup task"
     archive:
       includes:
-        - /path/to/backup/  # Replace with actual path
+        - /home/vts  # Replace with actual path
     schedule:
       cron: "0 0 * * *"  # Run daily at midnight
     compress_with:
       type: tgz
     storages:
-      local:
-        type: local
-        path: /path/to/local/backups  # Replace with actual path
       minio:
         type: minio
-        bucket: your-bucket-name  # Replace with actual bucket name
-        endpoint: http://your-minio-endpoint:9000  # Replace with actual endpoint
+        bucket: vtsbackup-test  # Replace with actual bucket name
+        endpoint: http://127.0.0.1:9000  # Replace with actual endpoint
         path: backups
         access_key_id: ${MINIO_ACCESS_KEY_ID}
         secret_access_key: ${MINIO_SECRET_ACCESS_KEY}

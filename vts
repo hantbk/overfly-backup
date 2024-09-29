@@ -1403,8 +1403,8 @@ then
 	# Add data
 	RESTORE_SCRIPT_INSERT "#!/bin/bash"
 	RESTORE_SCRIPT_INSERT ""
-	RESTORE_SCRIPT_INSERT "# Backup Recovery Mounting Script v1.0"
-	RESTORE_SCRIPT_INSERT "# This script attempts to ready a Linux system for vts by mounting the filesystem"
+	RESTORE_SCRIPT_INSERT "# VTS Backup Agent Recovery Mounting Script v1.0"
+	RESTORE_SCRIPT_INSERT "# This script attempts to ready a Linux system for VTS Backup Agent by mounting the filesystem"
 	RESTORE_SCRIPT_INSERT ""
 
 	# Create mount point
@@ -1449,9 +1449,23 @@ then
 	SUDO_RUN "chmod 755 $HOME_DIR/recovery.sh"
 
 	# Copy vts script into HOME_DIR
-	VTS_FULL_PATH=`whereis vts`
+	VTS_FULL_PATH=`whereis vtsbackup`
 	IFS=' ' read -a DATA <<< "$VTS_FULL_PATH"
 	SUDO_RUN "cp ${DATA[1]} $HOME_DIR/"
+
+	##################################################################################
+	## This script is used for testing purpose only ##
+	# Get current user's home directory
+	USER_HOME=$(eval echo ~$USER)
+
+	# Copy recovery.sh to user's home directory
+	SUDO_RUN "cp $HOME_DIR/recovery.sh $USER_HOME/"
+
+	# Change permissions of the copied file
+	SUDO_RUN "chmod 755 $USER_HOME/recovery.sh"
+
+	echo "Recovery script has been copied to $USER_HOME with permissions set to 755"
+	##################################################################################
 
 	echo "Complete"
 	echo ""

@@ -116,7 +116,7 @@ const ModelList = ({}) => {
       <div className="model-list-header">
         <div className="flex items-center space-x-2">
           <Icon name="stack" />
-          <div className="text-text text-base">Models</div>
+          <div className="text-text text-base">Tasks</div>
         </div>
       </div>
       <div className="model-list-scrollview">

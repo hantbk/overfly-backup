@@ -271,14 +271,22 @@ func main() {
 			Name:  "save",
 			Usage: "Perform standard rotating backups",
 			Action: func(ctx *cli.Context) error {
-				return runBashCommand("save")
+				err := runBashCommand("save")
+				if err != nil {
+					return err
+				}
+				return perform([]string{})
 			},
 		},
 		{
 			Name:  "keep",
 			Usage: "Perform manual backups (never deleted)",
 			Action: func(ctx *cli.Context) error {
-				return runBashCommand("keep")
+				err := runBashCommand("keep")
+				if err != nil {
+					return err
+				}
+				return perform([]string{})
 			},
 		},
 		{
