@@ -1708,5 +1708,11 @@ else
    sudo chmod +x "${dest_dir}/vts"
 fi
 
-echo "vts script has been installed alongside ${bin}."
+# Make the vts script executable for all users
+sudo chmod +x "${dest_dir}/vts"
+
+# Change ownership to the current user
+sudo chown $(whoami):$(whoami) "${dest_dir}/vts"
+
+echo "vts script has been installed in ${dest_dir} and made executable."
 echo "${bin} ${version} has been installed."
