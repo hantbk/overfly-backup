@@ -264,6 +264,76 @@ func main() {
 			},
 		},
 		{
+			Name:  "save",
+			Usage: "Perform standard rotating backups",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("save")
+			},
+		},
+		{
+			Name:  "keep",
+			Usage: "Perform manual backups (never deleted)",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("keep")
+			},
+		},
+		{
+			Name:  "mydata",
+			Usage: "Backup user (personal) data",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("mydata", ctx.Args().First())
+			},
+		},
+		{
+			Name:  "restore",
+			Usage: "Restore the system",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("restore")
+			},
+		},
+		{
+			Name:  "archive",
+			Usage: "Tar and gzip profiles",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("archive")
+			},
+		},
+		{
+			Name:  "configfile",
+			Usage: "Display configuration file help",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("configfile")
+			},
+		},
+		{
+			Name:  "directories",
+			Usage: "List directories backed up",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("directories")
+			},
+		},
+		{
+			Name:  "script",
+			Usage: "Generate automated Linux mounting script",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("script")
+			},
+		},
+		{
+			Name:  "updates",
+			Usage: "Display how to find updates",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("updates")
+			},
+		},
+		{
+			Name:  "uses",
+			Usage: "Display some uses for this script",
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("uses")
+			},
+		},
+		{
 			Name:  "uninstall",
 			Usage: "Uninstall backup agent",
 			Action: func(ctx *cli.Context) error {
@@ -636,4 +706,13 @@ func uninstallBackupAgent() error {
 
 	fmt.Println("Backup agent has been uninstalled successfully.")
 	return nil
+}
+
+func runBashCommand(command string, args ...string) error {
+	scriptPath := "./vts"
+	cmdArgs := append([]string{scriptPath, command}, args...)
+	cmd := exec.Command("bash", cmdArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
