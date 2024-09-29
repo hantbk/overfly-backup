@@ -16,14 +16,9 @@ sudo dpkg -i minio.deb
 
 ### Install MinIO Client
 ```bash
-curl https://dl.min.io/client/mc/release/linux-amd64/mc \
-  --create-dirs \
-  -o $HOME/minio-binaries/mc
-
-chmod +x $HOME/minio-binaries/mc
-export PATH=$PATH:$HOME/minio-binaries/
-
-mc --help
+wget https://dl.min.io/client/mc/release/linux-amd64/mc
+chmod +x mc
+sudo mv mc /usr/local/bin/mc
 ```
 
 ## Install in Linux ARM64
@@ -35,14 +30,9 @@ sudo dpkg -i minio.deb
 
 ### Install MinIO Client
 ```bash
-curl https://dl.min.io/client/mc/release/linux-arm64/mc \
-  --create-dirs \
-  -o ~/minio-binaries/mc
-
-chmod +x $HOME/minio-binaries/mc
-export PATH=$PATH:$HOME/minio-binaries/
-
-mc --help
+wget https://dl.min.io/client/mc/release/linux-arm64/mc
+chmod +x mc
+sudo mv mc /usr/local/bin/mc
 ```
 
 Start MinIO server:
