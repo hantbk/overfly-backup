@@ -222,6 +222,14 @@ func main() {
 			},
 		},
 		{
+			Name:  "list",
+			Usage: "List current saved backups",
+			Flags: buildFlags([]cli.Flag{}),
+			Action: func(ctx *cli.Context) error {
+				return runBashCommand("list")
+			},
+		},
+		{
 			Name:  "listM",
 			Usage: "List all configured backup models",
 			Flags: buildFlags([]cli.Flag{}),
@@ -231,7 +239,7 @@ func main() {
 		},
 		{
 			Name:  "listB",
-			Usage: "List backup files for a specific model",
+			Usage: "List backup files for a specific model in S3",
 			Flags: buildFlags([]cli.Flag{
 				&cli.StringFlag{
 					Name:     "model",
@@ -340,7 +348,7 @@ func main() {
 		},
 		{
 			Name:  "script",
-			Usage: "Generate automated Linux mounting script",
+			Usage: "Automated Linux mounting script",
 			Action: func(ctx *cli.Context) error {
 				return runBashCommand("script")
 			},
@@ -354,7 +362,7 @@ func main() {
 		},
 		{
 			Name:  "uses",
-			Usage: "Display some uses for this script",
+			Usage: "Some uses for this script",
 			Action: func(ctx *cli.Context) error {
 				return runBashCommand("uses")
 			},
