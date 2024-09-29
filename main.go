@@ -289,8 +289,11 @@ func main() {
 					return err
 				}
 
-				// Execute perform command with no specific models (will perform all)
-				return perform([]string{})
+				// Execute perform command with sudo
+				cmd := exec.Command("sudo", os.Args[0], "perform")
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				return cmd.Run()
 			},
 		},
 		{
@@ -307,8 +310,11 @@ func main() {
 					return err
 				}
 
-				// Execute perform command with no specific models (will perform all)
-				return perform([]string{})
+				// Execute perform command with sudo
+				cmd := exec.Command("sudo", os.Args[0], "perform")
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				return cmd.Run()
 			},
 		},
 		{
