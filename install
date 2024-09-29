@@ -72,6 +72,7 @@ models:
     storages:
       minio:
         type: minio
+        keep: 3
         bucket: vtsbackup-test  # Replace with actual bucket name
         endpoint: http://127.0.0.1:9000  # Replace with actual endpoint
         path: backups

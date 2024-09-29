@@ -11,7 +11,7 @@ VERSION="0.1"
 TITLE="VTS Backup Agent"
 
 # Set ACTION_BANNER to off
-ACTION_BANNER="off"
+ACTION_BANNER="on"
 
 # Load action from commandline
 action=$1
@@ -27,7 +27,7 @@ CORE_BACKUP_FILES=(/initrd.img /initrd.img.old /vmlinuz /vmlinuz.old)
 ####################################################################
 
 # Recover Mode
-RECOVER_MODE="off"
+RECOVER_MODE="on"
 
 # Max Saves
 MAX_SAVES="3"

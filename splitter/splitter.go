@@ -34,12 +34,12 @@ func Run(archivePath string, model config.ModelConfig) (archiveDirPath string, e
 	}
 
 	ext := model.Viper.GetString("Ext")
-	// /tmp/gobackup3755903383/1670167448676759530/2022.12.04.07.24.08
+	// /tmp/backup3755903383/1670167448676759530/2022.12.04.07.24.08
 	archiveDirPath = strings.TrimSuffix(archivePath, ext)
 	if err = helper.MkdirP(archiveDirPath); err != nil {
 		return
 	}
-	// /tmp/gobackup3755903383/1670167448676759530/2022.12.04.07.24.08/2022.12.04.07.24.08.tar.xz-
+	// /tmp/backup3755903383/1670167448676759530/2022.12.04.07.24.08/2022.12.04.07.24.08.tar.xz-
 	splitSuffix := filepath.Join(archiveDirPath, filepath.Base(archivePath)+"-")
 
 	opts := options(splitter)
