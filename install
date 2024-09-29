@@ -82,7 +82,8 @@ models:
         secret_access_key: ${MINIO_SECRET_ACCESS_KEY}
 EOF
 
-cat <<EOF > "${dest_dir}/vts"
+# Create vts bash script
+cat <<'EOF' > "${dest_dir}/vts"
 #!/bin/bash
 
 ######################################################################
@@ -1700,6 +1701,12 @@ fi
 
 EOF
 
-chmod +x "${dest_dir}/@vts"
+# Make the vts script executable
+if test $(id -u) -eq 0; then
+   chmod +x "${dest_dir}/vts"
+else
+   sudo chmod +x "${dest_dir}/vts"
+fi
 
+echo "vts script has been installed alongside ${bin}."
 echo "${bin} ${version} has been installed."
