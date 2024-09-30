@@ -2,12 +2,16 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/hantbk/vtsbackup)](https://goreportcard.com/report/github.com/hantbk/vtsbackup)
 [![GoDoc](https://godoc.org/github.com/hantbk/vtsbackup?status.svg)](https://godoc.org/github.com/hantbk/vtsbackup)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub release](https://img.shields.io/github/release/hantbk/vtsbackup.svg)](https://github.com/hantbk/vtsbackup/releases/)
 [![Go version](https://img.shields.io/github/go-mod/go-version/hantbk/vtsbackup.svg)](https://github.com/hantbk/vtsbackup)
+[![Build Status](https://github.com/hantbk/vtsbackup/actions/workflows/build-test.yml/badge.svg)](https://github.com/hantbk/vtsbackup/actions/workflows/go.yml)
+[![Release Status](https://github.com/hantbk/vtsbackup/actions/workflows/release-binary.yml/badge.svg)](https://github.com/hantbk/vtsbackup/actions/workflows/release.yml)
 
 ## Features
-
+- 🔄 Register agent with control plane (`In Progress`)
+- 💾 Backup entire Linux system
+- 🔄 Restore from backup 
 - 🗄️ Multiple Storage type support (Local, FTP, SFTP, SCP, MinIO, S3)
 - 📦 Archive paths or files into a tar
 - 🔐 Encrypt backup file with OpenSSL
@@ -49,5 +53,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [Apache License 2.0](LICENSE).
 
