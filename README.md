@@ -5,8 +5,8 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub release](https://img.shields.io/github/release/hantbk/vtsbackup.svg)](https://github.com/hantbk/vtsbackup/releases/)
 [![Go version](https://img.shields.io/github/go-mod/go-version/hantbk/vtsbackup.svg)](https://github.com/hantbk/vtsbackup)
-[![Build Status](https://github.com/hantbk/vtsbackup/actions/workflows/build-test.yml/badge.svg)](https://github.com/hantbk/vtsbackup/actions/workflows/go.yml)
-[![Release Status](https://github.com/hantbk/vtsbackup/actions/workflows/release-binary.yml/badge.svg)](https://github.com/hantbk/vtsbackup/actions/workflows/release.yml)
+[![CI Status](https://github.com/hantbk/vtsbackup/actions/workflows/ci.yml/badge.svg)](https://github.com/hantbk/vtsbackup/actions/workflows/ci.yml)
+[![Release Status](https://github.com/hantbk/vtsbackup/actions/workflows/release.yml/badge.svg)](https://github.com/hantbk/vtsbackup/actions/workflows/release.yml)
 
 ## Features
 - 🔄 Register agent with control plane (`In Progress`)
