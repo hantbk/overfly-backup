@@ -749,34 +749,39 @@ func uninstallBackupAgent() error {
 }
 
 func runBashCommand(command string, args ...string) error {
-	// Create a temporary file to store the vts script
-	tmpFile, err := os.CreateTemp("", "vts-script")
-	if err != nil {
-		return fmt.Errorf("failed to create temporary file: %v", err)
-	}
-	defer os.Remove(tmpFile.Name())
+    // Create a temporary file to store the vts script
+    tmpFile, err := os.CreateTemp("", "vts-script")
+    if err != nil {
+        return fmt.Errorf("failed to create temporary file: %v", err)
+    }
+    defer os.Remove(tmpFile.Name())
 
-	// Read the embedded vts script
-	scriptContent, err := vtsScript.ReadFile("vts")
-	if err != nil {
-		return fmt.Errorf("failed to read embedded vts script: %v", err)
-	}
+    // Read the embedded vts script
+    scriptContent, err := vtsScript.ReadFile("vts")
+    if err != nil {
+        return fmt.Errorf("failed to read embedded vts script: %v", err)
+    }
 
-	// Write the script content to the temporary file
-	if _, err := tmpFile.Write(scriptContent); err != nil {
-		return fmt.Errorf("failed to write vts script to temporary file: %v", err)
-	}
-	tmpFile.Close()
+    // Write the script content to the temporary file
+    if _, err := tmpFile.Write(scriptContent); err != nil {
+        return fmt.Errorf("failed to write vts script to temporary file: %v", err)
+    }
+    tmpFile.Close()
 
-	// Make the temporary file executable
-	if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
-		return fmt.Errorf("failed to make temporary file executable: %v", err)
-	}
+    // Make the temporary file executable
+    if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
+        return fmt.Errorf("failed to make temporary file executable: %v", err)
+    }
 
-	// Execute the script
-	cmdArgs := append([]string{tmpFile.Name(), command}, args...)
-	cmd := exec.Command("bash", cmdArgs...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+    // Execute the script
+    cmdArgs := append([]string{tmpFile.Name(), command}, args...)
+    cmd := exec.Command("bash", cmdArgs...)
+    
+    // Set up pipes for stdin, stdout, and stderr
+    cmd.Stdin = os.Stdin
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+
+    // Run the command and wait for it to finish
+    return cmd.Run()
 }
