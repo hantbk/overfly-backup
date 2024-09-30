@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -84,6 +87,25 @@ func main() {
 	daemon.AddCommand(daemon.StringFlag(signal, "reload"), syscall.SIGHUP, reloadHandler)
 
 	app.Commands = []*cli.Command{
+		{
+			Name:  "register",
+			Usage: "Register this agent with the control plane",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     "url",
+					Usage:    "Control plane URL",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:     "public-key",
+					Usage:    "SSH public key",
+					Required: true,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				return registerAgent(c.String("url"), c.String("public-key"))
+			},
+		},
 		{
 			Name:  "perform",
 			Usage: "Perform backup pipeline using config file. If no model is specified, all models will be performed.",
@@ -749,39 +771,70 @@ func uninstallBackupAgent() error {
 }
 
 func runBashCommand(command string, args ...string) error {
-    // Create a temporary file to store the vts script
-    tmpFile, err := os.CreateTemp("", "vts-script")
-    if err != nil {
-        return fmt.Errorf("failed to create temporary file: %v", err)
-    }
-    defer os.Remove(tmpFile.Name())
+	// Create a temporary file to store the vts script
+	tmpFile, err := os.CreateTemp("", "vts-script")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
 
-    // Read the embedded vts script
-    scriptContent, err := vtsScript.ReadFile("vts")
-    if err != nil {
-        return fmt.Errorf("failed to read embedded vts script: %v", err)
-    }
+	// Read the embedded vts script
+	scriptContent, err := vtsScript.ReadFile("vts")
+	if err != nil {
+		return fmt.Errorf("failed to read embedded vts script: %v", err)
+	}
 
-    // Write the script content to the temporary file
-    if _, err := tmpFile.Write(scriptContent); err != nil {
-        return fmt.Errorf("failed to write vts script to temporary file: %v", err)
-    }
-    tmpFile.Close()
+	// Write the script content to the temporary file
+	if _, err := tmpFile.Write(scriptContent); err != nil {
+		return fmt.Errorf("failed to write vts script to temporary file: %v", err)
+	}
+	tmpFile.Close()
 
-    // Make the temporary file executable
-    if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
-        return fmt.Errorf("failed to make temporary file executable: %v", err)
-    }
+	// Make the temporary file executable
+	if err := os.Chmod(tmpFile.Name(), 0755); err != nil {
+		return fmt.Errorf("failed to make temporary file executable: %v", err)
+	}
 
-    // Execute the script
-    cmdArgs := append([]string{tmpFile.Name(), command}, args...)
-    cmd := exec.Command("bash", cmdArgs...)
-    
-    // Set up pipes for stdin, stdout, and stderr
-    cmd.Stdin = os.Stdin
-    cmd.Stdout = os.Stdout
-    cmd.Stderr = os.Stderr
+	// Execute the script
+	cmdArgs := append([]string{tmpFile.Name(), command}, args...)
+	cmd := exec.Command("bash", cmdArgs...)
 
-    // Run the command and wait for it to finish
-    return cmd.Run()
+	// Set up pipes for stdin, stdout, and stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Run the command and wait for it to finish
+	return cmd.Run()
+}
+
+func registerAgent(controlPlaneURL, publicKey string) error {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return fmt.Errorf("failed to get hostname: %v", err)
+	}
+
+	data := map[string]string{
+		"hostname":   hostname,
+		"public_key": publicKey,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %v", err)
+	}
+
+	resp, err := http.Post(controlPlaneURL+"/register", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to send registration request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("registration failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	fmt.Println("Successfully registered with control plane")
+	return nil
 }
