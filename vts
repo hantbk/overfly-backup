@@ -1433,17 +1433,17 @@ then
 	RESTORE_SCRIPT_INSERT "# Add additional mount calls below this line - mount into /mnt/vts/CUSTOM_DIRECTORY"
 	RESTORE_SCRIPT_INSERT "# Don't forget to add create directory before mounting if it doesn't already exist!"
 	RESTORE_SCRIPT_INSERT "# Ex: sudo mkdir /mnt/vts/backups"
-	RESTORE_SCRIPT_INSERT "# Ex: sudo mount /dev/sda4 /mnt/vts/backups/"
+	RESTORE_SCRIPT_INSERT "# Ex: sudo mount /dev/sda3 /mnt/vts/backups/"
 	RESTORE_SCRIPT_INSERT ""
 
 	# Print command for user
 	RESTORE_SCRIPT_INSERT "echo \"Run the vts recovery program by issuing the following command:\""
-	RESTORE_SCRIPT_INSERT "echo \"sudo /mnt/vts/home/vts/vts restore\""
+	RESTORE_SCRIPT_INSERT "echo \"sudo /mnt/vts/home/vts/vtsbackup restore\""
 	RESTORE_SCRIPT_INSERT ""
 
 	# Run the restore command
 	RESTORE_SCRIPT_INSERT "# Run restore"
-	RESTORE_SCRIPT_INSERT "sudo /mnt/vts/home/vts/vts restore"
+	RESTORE_SCRIPT_INSERT "sudo /mnt/vts/home/vts/vtsbackup restore"
 
 	# Set correct permissions - root only
 	SUDO_RUN "chmod 755 $HOME_DIR/recovery.sh"
