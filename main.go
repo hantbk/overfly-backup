@@ -299,16 +299,17 @@ func main() {
 					return err
 				}
 
-				// Initialize the application before performing
-				if err := initApplication(); err != nil {
-					return err
-				}
+				// // Initialize the application before performing
+				// if err := initApplication(); err != nil {
+				// 	return err
+				// }
 
-				// Execute perform command with sudo
-				cmd := exec.Command("sudo", os.Args[0], "perform")
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				return cmd.Run()
+				// // Execute perform command with sudo
+				// cmd := exec.Command("sudo", os.Args[0], "perform")
+				// cmd.Stdout = os.Stdout
+				// cmd.Stderr = os.Stderr
+				// return cmd.Run()
+				return nil
 			},
 		},
 		{
@@ -320,16 +321,17 @@ func main() {
 					return err
 				}
 
-				// Initialize the application before performing
-				if err := initApplication(); err != nil {
-					return err
-				}
+				// // Initialize the application before performing
+				// if err := initApplication(); err != nil {
+				// 	return err
+				// }
 
-				// Execute perform command with sudo
-				cmd := exec.Command("sudo", os.Args[0], "perform")
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				return cmd.Run()
+				// // Execute perform command with sudo
+				// cmd := exec.Command("sudo", os.Args[0], "perform")
+				// cmd.Stdout = os.Stdout
+				// cmd.Stderr = os.Stderr
+				// return cmd.Run()
+				return nil
 			},
 		},
 		{
