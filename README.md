@@ -26,15 +26,11 @@
 ### Install on Linux
 
 ```shell
-export MINIO_ACCESS_KEY_ID=test-user
-export MINIO_SECRET_ACCESS_KEY=test-user-secret
 curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh
 ```
 
 ### Install Linux with specific version
 ```shell
-export MINIO_ACCESS_KEY_ID=test-user
-export MINIO_SECRET_ACCESS_KEY=test-user-secret
 curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh -s v0.0.1
 ```
 
