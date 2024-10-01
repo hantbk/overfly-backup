@@ -26,7 +26,7 @@ go.work.sum
 
 .glide/
 vtsbackup.yml
-vtsbackup
+vtsbackup_test.yml
 log/
 build/
 dist/
@@ -37,3 +37,5 @@ dist/
 
 tests/backups/
 tests/data/
+
+license_header.txt

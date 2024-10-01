@@ -76,28 +76,8 @@ models:
         bucket: vtsbackup-test  # Replace with actual bucket name
         endpoint: http://127.0.0.1:9000  # Replace with actual endpoint
         path: backups
-        access_key_id: ${MINIO_ACCESS_KEY_ID}
-        secret_access_key: ${MINIO_SECRET_ACCESS_KEY}
+        access_key_id: test-user
+        secret_access_key: test-user-secret
 EOF
 
-# Generate SSH keypair
-ssh_dir="$HOME/.ssh"
-key_name="vtsbackup_id_rsa"
-key_path="$ssh_dir/$key_name"
-
-if [ ! -f "$key_path" ]; then
-  echo "Generating SSH keypair for vtsbackup..."
-  mkdir -p "$ssh_dir"
-  ssh-keygen -t rsa -b 4096 -f "$key_path" -N "" -C "vtsbackup@$(hostname)"
-  chmod 600 "$key_path"
-  chmod 644 "$key_path.pub"
-fi
-
-# Read public key
-public_key=$(cat "$key_path.pub")
-
-# Register with control plane
-echo "Registering with control plane..."
-"${bin_path}" register --url https://192.168.1.7:8080 --public-key "$public_key"
-
-echo "${bin} ${version} has been installed and registered with a new SSH keypair."
+echo "${bin} ${version} has been installed."

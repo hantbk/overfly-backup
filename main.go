@@ -1,13 +1,25 @@
+// Copyright © 2024 Ha Nguyen <captainnemot1k60@gmail.com>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package main
 
 import (
-	"bytes"
 	"embed"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -87,25 +99,6 @@ func main() {
 	daemon.AddCommand(daemon.StringFlag(signal, "reload"), syscall.SIGHUP, reloadHandler)
 
 	app.Commands = []*cli.Command{
-		{
-			Name:  "register",
-			Usage: "Register this agent with the control plane",
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     "url",
-					Usage:    "Control plane URL",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:     "public-key",
-					Usage:    "SSH public key",
-					Required: true,
-				},
-			},
-			Action: func(c *cli.Context) error {
-				return registerAgent(c.String("url"), c.String("public-key"))
-			},
-		},
 		{
 			Name:  "perform",
 			Usage: "Perform backup pipeline using config file. If no model is specified, all models will be performed.",
@@ -382,10 +375,10 @@ func main() {
 			},
 		},
 		{
-			Name:  "updates",
+			Name:  "update",
 			Usage: "Display how to find updates",
 			Action: func(ctx *cli.Context) error {
-				return runBashCommand("updates")
+				return runBashCommand("update")
 			},
 		},
 		{
@@ -806,35 +799,4 @@ func runBashCommand(command string, args ...string) error {
 
 	// Run the command and wait for it to finish
 	return cmd.Run()
-}
-
-func registerAgent(controlPlaneURL, publicKey string) error {
-	hostname, err := os.Hostname()
-	if err != nil {
-		return fmt.Errorf("failed to get hostname: %v", err)
-	}
-
-	data := map[string]string{
-		"hostname":   hostname,
-		"public_key": publicKey,
-	}
-
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %v", err)
-	}
-
-	resp, err := http.Post(controlPlaneURL+"/register", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to send registration request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("registration failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	fmt.Println("Successfully registered with control plane")
-	return nil
 }

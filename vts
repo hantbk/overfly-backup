@@ -1346,15 +1346,18 @@ DISCLAIMER=\"off\"" | more
 
 fi
 
-# Updates
+# Update
 ######################################################################
-if test "$action" == "updates"
+if test "$action" == "update"
 then
-	ACTION_BANNER "Updates"
+    ACTION_BANNER "Update"
 
-	echo "For updates please see:
+    echo "Updating VTSBackup..."
+    curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh
 
-Github: https://github.com/hantbk/vtsbackup"
+    echo "Update complete. Please check the output above for any errors or additional instructions."
+    echo "You may need to restart your terminal or source your shell configuration file for changes to take effect."
+    echo "For more information, please visit: https://github.com/hantbk/vtsbackup"
 fi
 
 # Version check
@@ -1374,6 +1377,7 @@ then
 		if (( $(echo "$GH_VERSION > $VERSION" | bc -l) ))
 		then
 			MSG="UPGRADE REQUIRED! VERSIONS DO NOT MATCH!"
+			echo "An update is available. Please run 'vtsbackup update' to upgrade."
 		else
 			MSG="LATEST VERSION!"
 		fi
