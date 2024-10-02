@@ -136,6 +136,13 @@ then
 	fi
 fi
 
+# Footer
+######################################################################
+DISPLAY_FOOTER() {
+	echo $'\n'$'\n'"Disclaimer: Backup agent offers zero guarantees as improper usage can cause undesired results"
+	echo "Notice: Proper usage can correct unauthorized changes to system from attacks"$'\n'
+}
+
 # Display install package notices
 ######################################################################
 DISPLAY_PACKAGE_INSTALL() {
@@ -1579,4 +1586,13 @@ then
 	else
 		ERROR_BANNER "No such backup profile"
 	fi
+fi
+
+# Display footer
+######################################################################
+if test ${CONFIG_ARRAY[DISCLAIMER]} == "off"
+then
+	echo $'\n'
+else
+	DISPLAY_FOOTER
 fi

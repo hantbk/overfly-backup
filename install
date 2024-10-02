@@ -64,9 +64,9 @@ models:
     description: "Default backup task"
     archive:
       includes:
-        - /home/vts/points  # Replace with actual path
+        - /important/  # Replace with actual path
     schedule:
-      cron: "0 0 * * *"  # Run daily at midnight
+      every: "60s"
     compress_with:
       type: tgz
     storages:

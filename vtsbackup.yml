@@ -8,6 +8,11 @@ models:
         - /Users/hant/Documents
     compress_with:
       type: tgz
+    notifiers:
+      telegram:
+        type: telegram
+        chat_id: "@vtsbackuptest"
+        token: your-token-here
     storages:
       local:
         type: local
@@ -23,6 +28,11 @@ models:
         - /Users/hant/Documents
     compress_with:
       type: tgz
+    notifiers:
+      telegram:
+        type: telegram
+        chat_id: "@vtsbackuptest"
+        token: your-token-here
     storages:
       minio:
         type: minio
@@ -40,6 +50,11 @@ models:
         - /Users/hant/Documents
     compress_with:
       type: tgz
+    notifiers:
+      telegram:
+        type: telegram
+        chat_id: "@vtsbackuptest"
+        token: your-token-here
     storages:
       s3:
         type: s3
