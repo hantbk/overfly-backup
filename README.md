@@ -37,11 +37,17 @@ curl -sSL https://raw.githubusercontent.com/hantbk/vtsbackup/master/install | sh
 ## Documentation
 
 - [📘 Usage Guide](./docs/usage.md)
-- [🛠️ Development Environment Setup](./docs/minio-setup.md)
+- [🛠️ Development Environment Setup](./docs/setup.md)
 - [🚀 Release Process](./docs/release.md)
-- [🔍 Agent Health Check](./docs/check-agent.md)
-- [🔐 Encrypt and Compress](./docs/encrypt-compress.md)
-- [🔧 Control Panel](./docs/control-panel.md)
+- [🔍 Agent Health Check](./docs/server.md)
+- [🔐 Compress](./docs/compress.md)
+- [🔓 Decompress](./docs/decompress.md)
+- [🔄 Backup](./docs/backup.md)
+- [🔄 Restore](./docs/restore.md)
+- [🕒 Schedule](./docs/schedule.md) 
+- [🔧 Config](./docs/config.md)
+- [🔐 Encrypt](./docs/encrypt.md)
+- [🔓 Decrypt](./docs/decrypt.md)
 
 ## Contributing
 
