@@ -125,6 +125,7 @@ func main() {
 			Flags: buildFlags([]cli.Flag{}),
 			Action: func(ctx *cli.Context) error {
 				fmt.Println("Backup starting as daemon...")
+				fmt.Println("Open http://localhost:1201/ to see the status of Backup agent")
 
 				args := []string{"vtsbackup", "run"}
 				if len(configFile) != 0 {

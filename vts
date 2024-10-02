@@ -1448,7 +1448,7 @@ then
 	RESTORE_SCRIPT_INSERT ""
 
 	# Print command for user
-	RESTORE_SCRIPT_INSERT "echo \"Run the vts recovery program by issuing the following command:\""
+	RESTORE_SCRIPT_INSERT "echo \"Run the vtsbackup recovery program by issuing the following command:\""
 	RESTORE_SCRIPT_INSERT "echo \"sudo /mnt/vts/home/vts/vtsbackup restore\""
 	RESTORE_SCRIPT_INSERT ""
 
