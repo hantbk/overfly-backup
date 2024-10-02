@@ -69,6 +69,11 @@ models:
       every: "60s"
     compress_with:
       type: tgz
+    notifiers:
+      telegram:
+        type: telegram
+        chat_id: "@vtsbackuptest"
+        token: your-token-here
     storages:
       minio:
         type: minio
