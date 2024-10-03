@@ -1,9 +1,5 @@
 ## Usage
 
-You can see link below for more detail:
-
-[Backup Agents Demo Usage](https://youtu.be/uLJ-Ds1i6_Y)
-
 ![cover](../img/usage.png)
 
 ```shell
